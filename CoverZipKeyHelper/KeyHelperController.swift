@@ -36,7 +36,7 @@ final class KeyHelperController: NSObject {
         setupDarwinNotificationObservers()
         refreshAccessibilityTrust(installIfNeeded: true, promptIfNeeded: isKeyHelperEnabledForRuntime())
         startTrustedCheckTimer()
-        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
             self?.syncQuickLookWindowSize()
         }
         RunLoop.main.add(timer, forMode: .common)
@@ -87,8 +87,8 @@ final class KeyHelperController: NSObject {
             lastQuickLookSize = nil
             lastQuickLookPosition = nil
             needsQuickLookFrameRestore = true
-            windowSizeSettlesAt = Date().addingTimeInterval(0.75)
-            return
+            // 初回復元は待たずに行い、保存開始だけを遅らせる。
+            windowSizeSettlesAt = .distantPast
         }
         guard Date() >= windowSizeSettlesAt else { return }
         if needsQuickLookFrameRestore {

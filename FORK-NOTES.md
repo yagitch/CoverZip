@@ -22,6 +22,10 @@ Quick Lookでの機能にはKeyHelperの有効化と既存のアクセシビリ�
 本文サイズを繰り返し希望サイズへ戻す循環を避け、Quick Lookでは位置も共用します。
 起動アニメーション後に外枠を復元し、起動時のOSの補正結果は保存値へ書き戻しません。
 
+ビルド32は実機で位置ずれ・累積縮小の解消を確認済みです。
+ビルド33では復元前の0.75秒待機を撤廃し、Quick Look検出間隔を0.05秒に短縮しました。
+復元は検出直後に行い、保存開始前だけ0.75秒待って起動時の変化を除外します。
+
 ## ローカル署名
 
 このフォークのApp Groupは `6KCX8JYZB7.com.yagitch.CoverZip` です。
@@ -30,7 +34,7 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
-導入先は `/Applications/CoverZip.app`、改修版のビルド番号は32です。
+導入先は `/Applications/CoverZip.app`、改修版のビルド番号は33です。
 公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
 署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
 登録し直します。Karabinerの設定変更は不要です。
@@ -40,7 +44,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project CoverZip.xcodeproj -scheme CoverZip -configuration Release \
   -derivedDataPath .build-local build DEVELOPMENT_TEAM=6KCX8JYZB7 \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Development' \
-  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=32
+  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=33
 ```
 
 境界条件のテスト: `python3 tests/check_page_navigation.py`
