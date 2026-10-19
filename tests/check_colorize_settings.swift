@@ -20,6 +20,12 @@ import Foundation
         precondition(!settings.autoColorizeEnabled && !settings.aiColorizeEnabled)
         settings.autoColorizeEnabled = true
         let reopened = CZSettings(defaults: defaults)
+        precondition(reopened.aiColorizeModel == "manga" && reopened.mangaColorStrength == 0.55)
+        settings.aiColorizeModel = "fast"
+        settings.mangaColorStrength = 2
+        precondition(reopened.aiColorizeModel == "fast" && reopened.mangaColorStrength == 1)
+        settings.mangaColorStrength = 0
+        precondition(reopened.mangaColorStrength == 0)
         precondition(reopened.autoColorizeEnabled && !reopened.aiColorizeEnabled)
         print("着色設定: 旧設定の移行・双方向排他・両方オフ・再読込を確認")
     }

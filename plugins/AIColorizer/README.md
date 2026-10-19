@@ -8,6 +8,12 @@ CoverZip本体とは独立してビルド・導入する `AIColorizer.bundle`。
 両方オフも可能。旧設定で両方オンだった場合は、従来実際に使われていたAI側だけを維持する。
 Finder Quick Lookではどちらも実行しない。
 
+ビルド46・プラグインv3では高速／漫画用の両モデルを一つの独立バンドルに保持する。
+「設定 → ビューア設定 → AIモデル」で再起動せず切り替えられる。選択は保存する。
+漫画用の「漫画の色の濃さ」（初期値55%）は0%で従来方式、100%で原画と推論色の乗算。
+白い肌が原画の明るさで白へ戻る現象を軽減するが、画像全体にも効く。
+モデル自体が付けなかった肌色や、身体の領域検出を補う調整ではない。
+
 ## 処理と境界
 
 - 本体のQLPreviewViewだけがURL fragment `coverzip-native-viewer` を渡す。
@@ -107,13 +113,15 @@ curl -fL https://github.com/microsoft/onnxruntime/releases/download/v1.31.0/onnx
 echo '1031b36dd3bdaa8d976a6130d9cf2a05e9be320b93ae804f8427b91dc3432afc  .local-backup/20261019/manga-models/onnxruntime.tgz' | shasum -a 256 -c -
 tar -xzf .local-backup/20261019/manga-models/onnxruntime.tgz -C .local-backup/20261019/manga-models
 bash plugins/AIColorizer/build_manga.sh .local-backup/20261019/manga-models \
-  .local-backup/20261019/manga-models/onnxruntime-osx-arm64-1.31.0 .local-backup/20261019/manga-plugin
+  .local-backup/20261019/manga-models/onnxruntime-osx-arm64-1.31.0 .local-backup/20261019/manga-plugin \
+  .local-backup/20261019/colorization-research
 # 上記の手順で署名済みinstall-ai-pluginを作成してから実行
 .local-backup/install-ai-plugin .local-backup/20261019/manga-plugin/AIColorizer.bundle
 ```
 
 本体とプレビューを閉じ、残存する表示プロセスも終了してから入れ替える。
-旧高速版へ戻す場合は `.local-backup/20261019/ai-plugin/AIColorizer.bundle` を同じ導入ツールへ渡す。
+通常の高速版への切替は設定画面で行う。プラグイン全体を旧高速版へ戻す場合だけ
+`.local-backup/20261019/ai-plugin/AIColorizer.bundle` を同じ導入ツールへ渡す。
 ビルド45は旧版の256角ABIにも対応するため、本体の切り戻しは不要。
 
 検証: `tests/check_manga_plugin.swift` は公開の漫画サンプルを入力し、サイズ契約・着色・透明度を確認。
@@ -121,3 +129,9 @@ M5でCPU/GPU構成の初回は約20秒（準備を含む）、読み込み後約
 サンプルでは6頭部を検出し1頭部に肌の補助を適用した。顔の数と判定結果で処理時間は変わる。
 8192×4096の合成グレー画像による縮小・合成・取り消しの検証も合格。
 導入した本体の着色表示、同じZIPのFinder Quick Lookが無着色であることを実機確認した。
+
+v3の追加ABIは `selectModel:`（NSString: `fast` / `manga`）。ホストの直列キューで
+選択→サイズ取得→推論を連続実行する。旧プラグインは選択を持たず自身のモデルで動く。
+一度ロードした両モデルはプロセス終了まで保持するため、両方を使うとメモリ消費は増える。
+v3の単体テストで同一インスタンスの漫画→高速→漫画を確認。クライアント側でも
+8192角相当の縮小・取り消しに加え、濃さ0/100%で合成出力が変わることを確認する。

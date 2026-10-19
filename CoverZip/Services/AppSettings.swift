@@ -34,6 +34,12 @@ final class AppSettingsWriter: ObservableObject {
     @Published var autoColorizeColorImages = false {
         didSet { core.autoColorizeColorImages = autoColorizeColorImages; notifyColorizeChange() }
     }
+    @Published var aiColorizeModel = "manga" {
+        didSet { core.aiColorizeModel = aiColorizeModel; notifyColorizeChange() }
+    }
+    @Published var mangaColorStrength = 0.55 {
+        didSet { core.mangaColorStrength = mangaColorStrength; notifyColorizeChange() }
+    }
     @Published var autoColorizePalette = CZSettings.defaultColorizePalette {
         didSet { core.autoColorizePalette = autoColorizePalette; notifyColorizeChange() }
     }
@@ -133,6 +139,8 @@ final class AppSettingsWriter: ObservableObject {
         viewerPageStatusHideDelay = core.viewerPageStatusHideDelay
         autoColorizeEnabled = core.autoColorizeEnabled
         aiColorizeEnabled = core.aiColorizeEnabled
+        aiColorizeModel = core.aiColorizeModel
+        mangaColorStrength = core.mangaColorStrength
         autoColorizeColorImages = core.autoColorizeColorImages
         autoColorizePalette = core.autoColorizePalette
         imageDecodeCachePolicy = core.imageDecodeCachePolicy

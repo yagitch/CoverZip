@@ -46,6 +46,19 @@ struct PreviewSettingsView: View {
                     Button("配色をリセット") { settings.autoColorizePalette = CZSettings.defaultColorizePalette }
                 }.disabled(!settings.autoColorizeEnabled)
                 Toggle("AI自動着色（プラグイン）", isOn: $settings.aiColorizeEnabled)
+                Picker("AIモデル", selection: $settings.aiColorizeModel) {
+                    Text("高速モデル").tag("fast")
+                    Text("漫画用モデル").tag("manga")
+                }
+                .disabled(!settings.aiColorizeEnabled)
+                if settings.aiColorizeModel == "manga" {
+                    Slider(value: $settings.mangaColorStrength, in: 0...1, step: 0.05) {
+                        Text("漫画の色の濃さ")
+                    }
+                    .disabled(!settings.aiColorizeEnabled)
+                    Text("\(Int((settings.mangaColorStrength * 100).rounded()))% — 0%は従来の明るさ優先。上げると白い肌にも色が付きやすくなります。画像全体に適用します。")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Button("AIプラグインのフォルダを開く") {
                     guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: CZAppGroup.identifier) else { return }
                     let folder = root.appendingPathComponent("Library/Application Support/CoverZip/PlugIns")

@@ -4,6 +4,8 @@ enum CZAppGroup { static let identifier = "6KCX8JYZB7.com.yagitch.CoverZip" }
 final class CZSettings {
     static let shared = CZSettings()
     var autoColorizeColorImages = false
+    var aiColorizeModel = "manga"
+    var mangaColorStrength = 0.55
 }
 
 @main struct CheckAIClient {
@@ -17,8 +19,11 @@ final class CZSettings {
         client.render(source, slot: slot) { _ in fatalError("古いページの結果が適用されました") }
         client.cancelAll()
         let start = Date()
+        CZSettings.shared.mangaColorStrength = 0
+        var pale: Data?
         client.render(source, slot: slot) { output in
             precondition(output.width == 2048 && output.height == 1024)
+            pale = NSBitmapImageRep(cgImage: output).representation(using: .png, properties: [:])
             print("8192x4096 -> プラグイン指定サイズで推論 -> \(output.width)x\(output.height)合成、初回全体ms=\(Date().timeIntervalSince(start)*1000)")
             complete = true
         }
@@ -26,9 +31,11 @@ final class CZSettings {
         while !complete && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.01)) }
         precondition(complete, "着色結果が返りませんでした")
         complete = false
+        CZSettings.shared.mangaColorStrength = 1
         let warmStart = Date()
         client.render(source, slot: slot) { output in
             precondition(output.width == 2048 && output.height == 1024)
+            precondition(pale != NSBitmapImageRep(cgImage: output).representation(using: .png, properties: [:]), "色の濃さが反映されていません")
             print("読み込み後の縮小・推論・合成ms=\(Date().timeIntervalSince(warmStart)*1000)")
             complete = true
         }

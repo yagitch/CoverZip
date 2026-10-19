@@ -38,6 +38,8 @@ public enum CZSettingsKeys {
     public static let viewerPageStatusHideDelay = "viewerPageStatusHideDelay"
     public static let autoColorizeEnabled = "autoColorizeEnabled"
     public static let aiColorizeEnabled = "aiColorizeEnabled"
+    public static let aiColorizeModel = "aiColorizeModel"
+    public static let mangaColorStrength = "mangaColorStrength"
     public static let autoColorizeColorImages = "autoColorizeColorImages"
     public static let autoColorizePalette = "autoColorizePalette"
     // 読書履歴

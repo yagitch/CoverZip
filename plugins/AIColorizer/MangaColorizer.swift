@@ -11,7 +11,10 @@ public final class MangaColorizerPlugin: NSObject {
     private var parser: MLModel?
     private let side = 512
     private let skin: [Float] = [0.96, 0.76, 0.65]
-    @objc public func inputSideLength() -> NSNumber { 512 }
+    private let fast = AIColorizerPlugin()
+    private var usesFastModel = false
+    @objc public func selectModel(_ model: NSString) { usesFastModel = model == "fast" }
+    @objc public func inputSideLength() -> NSNumber { usesFastModel ? 256 : 512 }
 
     deinit {
         for model in [generator, detector, foreground] { if let model { cz_manga_destroy(model) } }
@@ -35,6 +38,7 @@ public final class MangaColorizerPlugin: NSObject {
     }
 
     @objc public func colorizeBGRA(_ input: NSData) -> NSData? {
+        if usesFastModel { return fast.colorizeBGRA(input) }
         guard input.length == side * side * 4 else { return nil }
         do {
             try load()

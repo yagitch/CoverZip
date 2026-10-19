@@ -73,6 +73,17 @@ public final class CZSettings {
         get { defaults.bool(forKey: CZSettingsKeys.autoColorizeColorImages) }
         set { defaults.set(newValue, forKey: CZSettingsKeys.autoColorizeColorImages) }
     }
+    public var aiColorizeModel: String {
+        get { defaults.string(forKey: CZSettingsKeys.aiColorizeModel) == "fast" ? "fast" : "manga" }
+        set { defaults.set(newValue == "fast" ? "fast" : "manga", forKey: CZSettingsKeys.aiColorizeModel) }
+    }
+    public var mangaColorStrength: Double {
+        get {
+            guard let value = defaults.object(forKey: CZSettingsKeys.mangaColorStrength) as? Double, value.isFinite else { return 0.55 }
+            return min(1, max(0, value))
+        }
+        set { defaults.set(newValue.isFinite ? min(1, max(0, newValue)) : 0.55, forKey: CZSettingsKeys.mangaColorStrength) }
+    }
     public var autoColorizePalette: [[Double]] {
         get {
             guard let colors = defaults.array(forKey: CZSettingsKeys.autoColorizePalette) as? [[Double]],

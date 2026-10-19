@@ -1,5 +1,13 @@
 # このフォークの変更
 
+ビルド46では「設定 → ビューア設定 → AIモデル」で高速／漫画用を即時切替できます。
+プラグインv3へ両モデルを同梱し、設定変更時に表示を再着色します。
+漫画用の「漫画の色の濃さ」は0〜100%、5%刻み、初期値55%。
+0%は原画の明るさを完全に残す従来方式。値を上げるとモデルの色を原画へ乗算した
+結果を混ぜ、白い肌で色が消える現象を軽減します。顔・身体を含む画像全体が対象で、
+肌の新たな検出や未検出部の補完ではありません。高速モデルの合成は従来どおりです。
+設定の保存、両モデルの往復切替、濃さ0/100%の出力差、実機の55%表示を確認済みです。
+
 ビルド45ではAIプラグインを漫画用モデル群へ切り替えました。
 512×512で漫画着色し、頭部検出・パーツ分類・前景分離で判定した顔の肌へ補助色を与えます。
 モデルは本体から独立したままです。Quick Lookの無着色、着色設定の排他は維持します。
@@ -134,7 +142,7 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
-導入先は `/Applications/CoverZip.app`、改修版のビルド番号は45です。
+導入先は `/Applications/CoverZip.app`、改修版のビルド番号は46です。
 公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
 署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
 登録し直します。Karabinerの設定変更は不要です。
@@ -144,7 +152,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project CoverZip.xcodeproj -scheme CoverZip -configuration Release \
   -derivedDataPath .build-local build DEVELOPMENT_TEAM=6KCX8JYZB7 \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Development' \
-  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=45
+  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=46
 ```
 
 境界条件のテスト: `python3 tests/check_page_navigation.py`

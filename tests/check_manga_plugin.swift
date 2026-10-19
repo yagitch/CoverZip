@@ -23,5 +23,13 @@ import AppKit
             try NSBitmapImageRep(cgImage: context.makeImage()!).representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: args[3]))
             print("run=\(run) seconds=\(Date().timeIntervalSince(start))")
         }
+        let selection = NSSelectorFromString("selectModel:")
+        plugin.perform(selection, with: "fast" as NSString)
+        precondition((plugin.perform(NSSelectorFromString("inputSideLength"))?.takeUnretainedValue() as! NSNumber).intValue == 256)
+        let fastInput = Data(repeating: 180, count: 256*256*4)
+        precondition((plugin.perform(selector, with: fastInput as NSData)?.takeUnretainedValue() as? Data)?.count == fastInput.count)
+        plugin.perform(selection, with: "manga" as NSString)
+        precondition((plugin.perform(NSSelectorFromString("inputSideLength"))?.takeUnretainedValue() as! NSNumber).intValue == 512)
+        print("高速→漫画モデルの切替を確認")
     }
 }

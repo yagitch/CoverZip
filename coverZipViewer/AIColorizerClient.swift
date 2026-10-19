@@ -27,11 +27,13 @@ final class AIColorizerClient {
         let key = ObjectIdentifier(slot), generation = UUID()
         generations[key] = generation
         let includeColor = CZSettings.shared.autoColorizeColorImages
+        let model = CZSettings.shared.aiColorizeModel
+        let strength = CZSettings.shared.mangaColorStrength
         let operation = DispatchWorkItem { [weak self] in
             // 待機中にページが変わった処理は、モデルを呼ぶ前に除外する。
             let valid = DispatchQueue.main.sync { self?.generations[key] == generation }
             guard valid else { return }
-            let result = autoreleasepool { Self.process(source, includeColor: includeColor) }
+            let result = autoreleasepool { Self.process(source, includeColor: includeColor, model: model, strength: strength) }
             DispatchQueue.main.async { [weak self] in
                 guard let self, self.generations[key] == generation else { return }
                 self.requests.removeValue(forKey: key)
@@ -43,7 +45,7 @@ final class AIColorizerClient {
         Self.queue.async(execute: operation)
     }
 
-    private static func process(_ source: CGImage, includeColor: Bool) -> CGImage? {
+    private static func process(_ source: CGImage, includeColor: Bool, model: String, strength: Double) -> CGImage? {
         if plugin == nil {
             guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: CZAppGroup.identifier),
                   let bundle = Bundle(url: root.appendingPathComponent("Library/Application Support/CoverZip/PlugIns/AIColorizer.bundle")),
@@ -51,6 +53,8 @@ final class AIColorizerClient {
             plugin = type.init()
         }
         guard let plugin else { return nil }
+        let modelSelector = NSSelectorFromString("selectModel:")
+        if plugin.responds(to: modelSelector) { plugin.perform(modelSelector, with: model as NSString) }
         let sizeSelector = NSSelectorFromString("inputSideLength")
         let side = plugin.responds(to: sizeSelector)
             ? (plugin.perform(sizeSelector)?.takeUnretainedValue() as? NSNumber)?.intValue ?? 256 : 256
@@ -84,7 +88,12 @@ final class AIColorizerClient {
         let scale = min(1, 2048 / CGFloat(max(source.width, source.height)))
         let base = CIImage(cgImage: source).transformed(by: CGAffineTransform(scaleX: scale, y: scale))
         let color = CIImage(cgImage: colors).transformed(by: CGAffineTransform(scaleX: base.extent.width / CGFloat(side), y: base.extent.height / CGFloat(side)))
-        let merged = color.applyingFilter("CIColorBlendMode", parameters: [kCIInputBackgroundImageKey: base])
+        var merged = color.applyingFilter("CIColorBlendMode", parameters: [kCIInputBackgroundImageKey: base])
+        if model == "manga" && side == 512 && strength > 0 {
+            // 原画が白でも色を残し、黒い線は乗算で維持する。0は従来の合成。
+            let tinted = color.applyingFilter("CIMultiplyBlendMode", parameters: [kCIInputBackgroundImageKey: base])
+            merged = merged.applyingFilter("CIDissolveTransition", parameters: [kCIInputTargetImageKey: tinted, kCIInputTimeKey: strength])
+        }
         let masked = merged.applyingFilter("CISourceInCompositing", parameters: [kCIInputBackgroundImageKey: base])
         return context.createCGImage(masked, from: base.extent)
     }

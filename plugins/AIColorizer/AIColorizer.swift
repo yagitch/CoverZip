@@ -3,7 +3,11 @@ import CoreML
 import CoreVideo
 
 /// 独立バンドルの入口。入出力は常に256×256 BGRA、原寸画像は受け取らない。
+#if MANGA_BUNDLE
+@objc(CZFastAIColorizerPlugin)
+#else
 @objc(CZAIColorizerPlugin)
+#endif
 public final class AIColorizerPlugin: NSObject {
     private var core: MLModel?
     private var tail: MLModel?
