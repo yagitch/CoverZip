@@ -380,7 +380,7 @@ enum QLPreviewInputDriver {
             bar.isHidden = false
             let work = DispatchWorkItem { [weak self] in self?.bar.isHidden = true }
             hideWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(CZSettings.shared.viewerPageStatusHideDelay), execute: work)
         }
     }
 

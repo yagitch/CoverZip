@@ -54,6 +54,12 @@ final class AppSettingsWriter: ObservableObject {
     @Published var pageLoopEnabled: Bool = true {
         didSet { core.pageLoopEnabled = pageLoopEnabled }
     }
+    @Published var viewerPageStatusHideDelay: Int = 3 {
+        didSet {
+            core.viewerPageStatusHideDelay = viewerPageStatusHideDelay
+            NotificationCenter.default.post(name: CZDistributedNotifications.settingsChanged, object: nil)
+        }
+    }
     @Published var showViewerPageStatus: Bool = true {
         didSet {
             core.showViewerPageStatus = showViewerPageStatus
@@ -98,6 +104,7 @@ final class AppSettingsWriter: ObservableObject {
         quitOnLastViewerKeyboardClose = core.quitOnLastViewerKeyboardClose
         pageLoopEnabled = core.pageLoopEnabled
         showViewerPageStatus = core.showViewerPageStatus
+        viewerPageStatusHideDelay = core.viewerPageStatusHideDelay
         imageDecodeCachePolicy = core.imageDecodeCachePolicy
         pageTransitionEnabled = core.pageTransitionEnabled
         defaultViewMode = core.defaultViewMode

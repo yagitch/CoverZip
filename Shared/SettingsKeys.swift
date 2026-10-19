@@ -35,6 +35,7 @@ public enum CZSettingsKeys {
     public static let quitOnLastViewerKeyboardClose = "quitOnLastViewerKeyboardClose"
     public static let pageLoopEnabled = "pageLoopEnabled"
     public static let showViewerPageStatus = "showViewerPageStatus"
+    public static let viewerPageStatusHideDelay = "viewerPageStatusHideDelay"
     // 読書履歴
     public static let readingHistoryEnabled = "readingHistoryEnabled"
     public static let readingHistoryData = "readingHistoryData"

@@ -29,6 +29,9 @@ Finder Quick Lookの外観、既存のキーバインドは変えません。
 1秒後に非表示にします。タイトルの数字は表示を維持します。
 実機で見開きの `3|2 : 3`、単ページの `1 : 3`、操作時の再表示と自動非表示を確認しました。
 
+ビルド39では「ビューア設定 → バーを隠すまでの時間」で待機時間を指定できます。
+1秒以上の整数秒で、初期値は3秒です。直接入力と増減ボタンに対応し、変更は即時反映・保存します。
+
 ページ状態はプレビュー拡張から本体へ、ファイルパスとセッションID付きの分散通知で送ります。
 サンドボックス制約に合わせて通知のuserInfoを使わず、objectのJSON文字列に格納します。
 単ページの1→2→3→1、表示のオン／オフ、Quick Lookの起動を実機で確認しました。
@@ -88,7 +91,7 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
-導入先は `/Applications/CoverZip.app`、改修版のビルド番号は38です。
+導入先は `/Applications/CoverZip.app`、改修版のビルド番号は39です。
 公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
 署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
 登録し直します。Karabinerの設定変更は不要です。
@@ -98,7 +101,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project CoverZip.xcodeproj -scheme CoverZip -configuration Release \
   -derivedDataPath .build-local build DEVELOPMENT_TEAM=6KCX8JYZB7 \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Development' \
-  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=38
+  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=39
 ```
 
 境界条件のテスト: `python3 tests/check_page_navigation.py`

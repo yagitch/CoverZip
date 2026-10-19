@@ -101,6 +101,10 @@ public final class CZSettings {
         get { defaults.object(forKey: CZSettingsKeys.showViewerPageStatus) as? Bool ?? true }
         set { defaults.set(newValue, forKey: CZSettingsKeys.showViewerPageStatus) }
     }
+    public var viewerPageStatusHideDelay: Int {
+        get { max(1, defaults.object(forKey: CZSettingsKeys.viewerPageStatusHideDelay) as? Int ?? 3) }
+        set { defaults.set(max(1, newValue), forKey: CZSettingsKeys.viewerPageStatusHideDelay) }
+    }
 
     public var quitOnLastViewerKeyboardClose: Bool {
         get { defaults.object(forKey: CZSettingsKeys.quitOnLastViewerKeyboardClose) as? Bool ?? true }

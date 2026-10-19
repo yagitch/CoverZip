@@ -28,8 +28,22 @@ struct PreviewSettingsView: View {
         Form {
             Section {
                 Toggle("本体のページ位置バーとタイトルのページ番号を表示", isOn: $settings.showViewerPageStatus)
+                HStack {
+                    Text("バーを隠すまでの時間")
+                    Spacer()
+                    TextField("秒数", value: Binding(
+                        get: { settings.viewerPageStatusHideDelay },
+                        set: { settings.viewerPageStatusHideDelay = max(1, $0) }
+                    ), format: .number.grouping(.never))
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 70)
+                    Text("秒")
+                    Stepper("秒数を変更", value: $settings.viewerPageStatusHideDelay, in: 1...Int.max)
+                        .labelsHidden()
+                }
+                .disabled(!settings.showViewerPageStatus)
             } footer: {
-                Text("下端に重ねる半透明バーとタイトルのページ番号をまとめて切り替えます。バーは操作・マウス移動で表示され、1秒後に消えます。")
+                Text("バーは操作・マウス移動で表示され、指定時間後に消えます。時間は1秒以上の整数で指定できます。初期値は3秒です。")
             }
             Section {
                 Toggle("先頭と最終ページをループする", isOn: $settings.pageLoopEnabled)
