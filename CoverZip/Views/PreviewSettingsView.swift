@@ -27,6 +27,11 @@ struct PreviewSettingsView: View {
     var body: some View {
         Form {
             Section {
+                Toggle("先頭と最終ページをループする", isOn: $settings.pageLoopEnabled)
+            } footer: {
+                Text("オンでは先頭の前は最終ページ、最終の次は先頭ページへ移動します。本体とQuick Lookに適用され、オフでは両端で止まります。")
+            }
+            Section {
                 TrailingSegmentedPickerRow(
                     title: CZLocalized.string("settings.display.default_direction", defaultValue: "Default Reading Direction")
                 ) {

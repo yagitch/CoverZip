@@ -1,0 +1,163 @@
+{
+  "title": "FinderでEnterをアプリ起動、F2を名前変更にする",
+  "rules": [
+    {
+      "description": "Finder: Enterで関連付けアプリで開く、F2で名前変更（文字入力中を除外）",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "return_or_enter",
+            "modifiers": {
+              "optional": [
+                "caps_lock"
+              ]
+            }
+          },
+          "to": [
+            {
+              "key_code": "o",
+              "modifiers": [
+                "left_command"
+              ],
+              "repeat": false
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.apple\\.finder$"
+              ]
+            },
+            {
+              "type": "expression_unless",
+              "expression": "accessibility.focused_ui_element.role_string like 'AXText*'"
+            },
+            {
+              "type": "variable_unless",
+              "name": "accessibility.focused_ui_element.role_string",
+              "value": "AXComboBox"
+            },
+            {
+              "type": "variable_unless",
+              "name": "accessibility.focused_ui_element.role_string",
+              "value": ""
+            },
+            {
+              "type": "variable_unless",
+              "name": "accessibility.focused_ui_element.role_string",
+              "value": 0
+            },
+            {
+              "type": "variable_unless",
+              "name": "accessibility.focused_ui_element.subrole_string",
+              "value": "Quick Look"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_enter",
+            "modifiers": {
+              "optional": [
+                "caps_lock"
+              ]
+            }
+          },
+          "to": [
+            {
+              "key_code": "o",
+              "modifiers": [
+                "left_command"
+              ],
+              "repeat": false
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.apple\\.finder$"
+              ]
+            },
+            {
+              "type": "expression_unless",
+              "expression": "accessibility.focused_ui_element.role_string like 'AXText*'"
+            },
+            {
+              "type": "variable_unless",
+              "name": "accessibility.focused_ui_element.role_string",
+              "value": "AXComboBox"
+            },
+            {
+              "type": "variable_unless",
+              "name": "accessibility.focused_ui_element.role_string",
+              "value": ""
+            },
+            {
+              "type": "variable_unless",
+              "name": "accessibility.focused_ui_element.role_string",
+              "value": 0
+            },
+            {
+              "type": "variable_unless",
+              "name": "accessibility.focused_ui_element.subrole_string",
+              "value": "Quick Look"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "f2",
+            "modifiers": {
+              "optional": [
+                "caps_lock"
+              ]
+            }
+          },
+          "to": [
+            {
+              "key_code": "return_or_enter",
+              "repeat": false
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.apple\\.finder$"
+              ]
+            },
+            {
+              "type": "expression_unless",
+              "expression": "accessibility.focused_ui_element.role_string like 'AXText*'"
+            },
+            {
+              "type": "variable_unless",
+              "name": "accessibility.focused_ui_element.role_string",
+              "value": "AXComboBox"
+            },
+            {
+              "type": "variable_unless",
+              "name": "accessibility.focused_ui_element.role_string",
+              "value": ""
+            },
+            {
+              "type": "variable_unless",
+              "name": "accessibility.focused_ui_element.role_string",
+              "value": 0
+            },
+            {
+              "type": "variable_unless",
+              "name": "accessibility.focused_ui_element.subrole_string",
+              "value": "Quick Look"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

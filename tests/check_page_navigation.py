@@ -21,6 +21,10 @@ def method(name):
 
 
 harness = """
+final class CZSettings {
+    static let shared = CZSettings()
+    var pageLoopEnabled = true
+}
 final class Paging {
     var imageEntryCount: Int
     var currentIndex: Int = 0
@@ -46,6 +50,7 @@ for count in 0...1 {
         let paging = Paging(count)
         precondition(!paging.nextImage(isSpreadMode: spread))
         precondition(paging.currentIndex == 0)
+        precondition(!paging.previousImage(isSpreadMode: spread))
     }
 }
 // 任意ページへのジャンプ後も、範囲外に進まず先頭へ戻る。
@@ -55,7 +60,11 @@ for count in 2...8 {
         paging.currentIndex = count - 1
         precondition(paging.nextImage(isSpreadMode: spread))
         precondition(paging.currentIndex == 0)
-        precondition(!paging.previousImage(isSpreadMode: spread))
+        precondition(paging.previousImage(isSpreadMode: spread))
+        precondition(paging.currentIndex == (spread ? ((count - 2) / 2) * 2 + 1 : count - 1))
+        precondition(paging.nextImage(isSpreadMode: spread))
+        precondition(paging.currentIndex == 0)
+        precondition(!paging.previousImage(isSpreadMode: spread, wrapsAtStart: false))
         paging.currentIndex = count - 1
         precondition(!paging.nextImage(isSpreadMode: spread, wrapsAtEnd: false))
         precondition(paging.currentIndex == count - 1)
@@ -65,6 +74,18 @@ let previous = Paging(5)
 previous.currentIndex = 3
 precondition(previous.previousImage(isSpreadMode: true) && previous.currentIndex == 1)
 precondition(previous.previousImage(isSpreadMode: true) && previous.currentIndex == 0)
+CZSettings.shared.pageLoopEnabled = false
+for count in 2...8 {
+    for spread in [false, true] {
+        let paging = Paging(count)
+        precondition(!paging.previousImage(isSpreadMode: spread))
+        precondition(paging.currentIndex == 0)
+        paging.currentIndex = count - 1
+        precondition(!paging.nextImage(isSpreadMode: spread))
+        precondition(paging.currentIndex == count - 1)
+        precondition(paging.previousImage(isSpreadMode: spread))
+    }
+}
 print("ページ送り回帰テスト: 成功")
 """
 

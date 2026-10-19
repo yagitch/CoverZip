@@ -33,6 +33,7 @@ public enum CZSettingsKeys {
     public static let restoreWindowFrameEnabled = "restoreWindowFrameEnabled"
     public static let savedWindowFrameString = "savedWindowFrameString"
     public static let quitOnLastViewerKeyboardClose = "quitOnLastViewerKeyboardClose"
+    public static let pageLoopEnabled = "pageLoopEnabled"
     // 読書履歴
     public static let readingHistoryEnabled = "readingHistoryEnabled"
     public static let readingHistoryData = "readingHistoryData"

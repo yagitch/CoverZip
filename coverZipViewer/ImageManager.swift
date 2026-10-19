@@ -1122,7 +1122,7 @@ extension ImageManager {
     /**
      * 次の画像に移動する。手動操作では末尾から先頭に戻る。
      */
-    func nextImage(isSpreadMode: Bool = false, wrapsAtEnd: Bool = true) -> Bool {
+    func nextImage(isSpreadMode: Bool = false, wrapsAtEnd: Bool = CZSettings.shared.pageLoopEnabled) -> Bool {
         guard imageEntryCount > 1 else { return false }
 
         if isSpreadMode {
@@ -1145,8 +1145,14 @@ extension ImageManager {
     /**
      * 前の画像に移動する
      */
-    func previousImage(isSpreadMode: Bool = false) -> Bool {
-        guard imageEntryCount > 0, currentIndex > 0 else { return false }
+    func previousImage(isSpreadMode: Bool = false, wrapsAtStart: Bool = CZSettings.shared.pageLoopEnabled) -> Bool {
+        guard imageEntryCount > 1 else { return false }
+        if currentIndex == 0 {
+            guard wrapsAtStart else { return false }
+            // 表紙の次から2枚ずつ進む場合の最終見開きへ戻る。
+            currentIndex = isSpreadMode ? ((imageEntryCount - 2) / 2) * 2 + 1 : imageEntryCount - 1
+            return true
+        }
 
         if isSpreadMode {
             if currentIndex == 1 {

@@ -93,6 +93,11 @@ public final class CZSettings {
     }
 
     // MARK: - ウィンドウフレーム永続化
+    public var pageLoopEnabled: Bool {
+        get { defaults.object(forKey: CZSettingsKeys.pageLoopEnabled) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: CZSettingsKeys.pageLoopEnabled) }
+    }
+
     public var quitOnLastViewerKeyboardClose: Bool {
         get { defaults.object(forKey: CZSettingsKeys.quitOnLastViewerKeyboardClose) as? Bool ?? true }
         set { defaults.set(newValue, forKey: CZSettingsKeys.quitOnLastViewerKeyboardClose) }

@@ -1,11 +1,18 @@
 # このフォークの変更
 
 手動で最終ページ（見開きの場合は最終見開き）からさらに進むと、1ページ目へ戻ります。
-先頭から戻る操作と、スライドショーの末尾停止は従来どおりです。
+ビルド35から先頭で前に戻ると最終ページ（最終見開き）へ移動します。
+「設定 → ビューア設定 → 先頭と最終ページをループする」で双方向のループを切り替えます。
+既定はオン、オフでは先頭・末尾の両端で停止します。本体・Quick Look共通です。
+スライドショーの末尾停止は従来どおりです。
 画像が0枚または1枚の場合はページ変更を行いません。
 
 本体の内蔵ビューアとFinderのQuick Lookは共通の `ImageManager` を使用します。
 キー入力・アプリ識別子・設定キーは変更していません。
+
+FinderのEnterは、外部のKarabiner設定でCommand＋O（関連付けアプリで開く）へ
+割り当てています。SpaceはQuick Look、F2は名前変更です。文字入力中はEnter変換を除外します。
+導入したルールは `integrations/karabiner-finder-open.json` に記録しています。
 
 ## ウインドウと開始ページ（ビルド31）
 
@@ -43,7 +50,7 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
-導入先は `/Applications/CoverZip.app`、改修版のビルド番号は34です。
+導入先は `/Applications/CoverZip.app`、改修版のビルド番号は35です。
 公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
 署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
 登録し直します。Karabinerの設定変更は不要です。
@@ -53,7 +60,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project CoverZip.xcodeproj -scheme CoverZip -configuration Release \
   -derivedDataPath .build-local build DEVELOPMENT_TEAM=6KCX8JYZB7 \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Development' \
-  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=34
+  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=35
 ```
 
 境界条件のテスト: `python3 tests/check_page_navigation.py`
