@@ -34,6 +34,7 @@ public enum CZSettingsKeys {
     public static let savedWindowFrameString = "savedWindowFrameString"
     public static let quitOnLastViewerKeyboardClose = "quitOnLastViewerKeyboardClose"
     public static let pageLoopEnabled = "pageLoopEnabled"
+    public static let showViewerPageStatus = "showViewerPageStatus"
     // 読書履歴
     public static let readingHistoryEnabled = "readingHistoryEnabled"
     public static let readingHistoryData = "readingHistoryData"
@@ -279,6 +280,7 @@ public enum CZDarwinNotifications {
 
 // App と Extensions 間で設定を同期するための分散通知
 public enum CZDistributedNotifications {
+    public static let previewPageStatus = Notification.Name("com.dmng.CoverZip.previewPageStatus")
     // App 側設定が変更され、Extensions 側へ反映すべきときに送信
     public static let settingsChanged = Notification.Name("com.dmng.CoverZip.settingsChanged")
     // Preview Extension のスライダー操作完了時に送信（キーボードフォーカス復帰用）

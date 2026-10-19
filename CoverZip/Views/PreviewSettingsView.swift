@@ -27,6 +27,11 @@ struct PreviewSettingsView: View {
     var body: some View {
         Form {
             Section {
+                Toggle("本体のページ位置バーとタイトルのページ番号を表示", isOn: $settings.showViewerPageStatus)
+            } footer: {
+                Text("ウインドウ下端のバーと、タイトルの「現在ページ : 総ページ数」をまとめて切り替えます。")
+            }
+            Section {
                 Toggle("先頭と最終ページをループする", isOn: $settings.pageLoopEnabled)
             } footer: {
                 Text("オンでは先頭の前は最終ページ、最終の次は先頭ページへ移動します。本体とQuick Lookに適用され、オフでは両端で止まります。")

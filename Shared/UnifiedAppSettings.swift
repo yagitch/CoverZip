@@ -97,6 +97,10 @@ public final class CZSettings {
         get { defaults.object(forKey: CZSettingsKeys.pageLoopEnabled) as? Bool ?? true }
         set { defaults.set(newValue, forKey: CZSettingsKeys.pageLoopEnabled) }
     }
+    public var showViewerPageStatus: Bool {
+        get { defaults.object(forKey: CZSettingsKeys.showViewerPageStatus) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: CZSettingsKeys.showViewerPageStatus) }
+    }
 
     public var quitOnLastViewerKeyboardClose: Bool {
         get { defaults.object(forKey: CZSettingsKeys.quitOnLastViewerKeyboardClose) as? Bool ?? true }

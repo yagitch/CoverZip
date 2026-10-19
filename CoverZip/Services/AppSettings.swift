@@ -54,6 +54,12 @@ final class AppSettingsWriter: ObservableObject {
     @Published var pageLoopEnabled: Bool = true {
         didSet { core.pageLoopEnabled = pageLoopEnabled }
     }
+    @Published var showViewerPageStatus: Bool = true {
+        didSet {
+            core.showViewerPageStatus = showViewerPageStatus
+            NotificationCenter.default.post(name: CZDistributedNotifications.settingsChanged, object: nil)
+        }
+    }
 
     @Published var restoreWindowFrameEnabled: Bool = true {
         didSet { core.restoreWindowFrameEnabled = restoreWindowFrameEnabled }
@@ -91,6 +97,7 @@ final class AppSettingsWriter: ObservableObject {
         restoreWindowFrameEnabled = core.restoreWindowFrameEnabled
         quitOnLastViewerKeyboardClose = core.quitOnLastViewerKeyboardClose
         pageLoopEnabled = core.pageLoopEnabled
+        showViewerPageStatus = core.showViewerPageStatus
         imageDecodeCachePolicy = core.imageDecodeCachePolicy
         pageTransitionEnabled = core.pageTransitionEnabled
         defaultViewMode = core.defaultViewMode

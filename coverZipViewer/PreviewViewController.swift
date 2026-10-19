@@ -25,6 +25,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     private var imageManager = ImageManager()
     private var readingHistoryManager = ReadingHistoryManager.shared
     private var currentZipFilename: String = ""
+    private var pageStatusFilePath: String?
     private var mouseMonitors: [Any] = []
     private var isHandlingPassThroughControlInteraction = false
     private var pendingSingleClick: DispatchWorkItem?
@@ -715,6 +716,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         
     // ファイル名を保存（履歴管理用）
     currentZipFilename = url.lastPathComponent
+    pageStatusFilePath = url.resolvingSymlinksInPath().path
         
     // まずはグローバル設定の既定を適用（履歴があれば後で上書き）
     didRestoreRTLFromHistory = false
@@ -2608,6 +2610,18 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         let currentPage = imageManager.getCurrentPageNumber()
         let totalPages = imageManager.getImageCount()
         pageLabel?.stringValue = "\(currentPage) / \(totalPages)"
+        guard let path = pageStatusFilePath,
+              let data = try? JSONSerialization.data(withJSONObject: [
+                "path": path, "session": previewVisibilitySessionID,
+                "current": currentPage, "total": totalPages, "rtl": isRightToLeftReading
+              ]), let payload = String(data: data, encoding: .utf8) else { return }
+        // サンドボックス内からはuserInfoを使わず、文字列のobjectで状態を渡す。
+        DistributedNotificationCenter.default().postNotificationName(
+            CZDistributedNotifications.previewPageStatus,
+            object: payload,
+            userInfo: nil,
+            deliverImmediately: true
+        )
     }
     
     // キーボード入力はQuick Lookホストに委ねる（本拡張では未処理）

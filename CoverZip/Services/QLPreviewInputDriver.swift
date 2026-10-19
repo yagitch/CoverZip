@@ -30,6 +30,7 @@ enum QLPreviewInputDriver {
 
     /// テスト用ウィンドウを保持（早期解放を防ぐ）
     private static var retainedWindows: [NSWindow] = []
+    private static var pageIndicators: [ObjectIdentifier: ViewerPageIndicator] = [:]
     /// KeyForwardingView の弱参照を保持（フォーカス復帰用）
     private static var keyForwarders: [WeakRef<KeyForwardingView>] = []
     /// コンテキストメニュー供給（アプリ側で設定）
@@ -178,12 +179,24 @@ enum QLPreviewInputDriver {
             previewView.translatesAutoresizingMaskIntoConstraints = false
             previewView.shouldCloseWithWindow = true
             content.addSubview(previewView)
+            let pageIndicator = ViewerPageIndicator(window: window, url: url)
+            pageIndicators[ObjectIdentifier(window)] = pageIndicator
+            let bar = pageIndicator.bar
+            content.addSubview(bar)
+            bar.translatesAutoresizingMaskIntoConstraints = false
+            let barHeight = bar.heightAnchor.constraint(equalToConstant: 6)
+            pageIndicator.heightConstraint = barHeight
             NSLayoutConstraint.activate([
                 previewView.leadingAnchor.constraint(equalTo: content.leadingAnchor),
                 previewView.trailingAnchor.constraint(equalTo: content.trailingAnchor),
                 previewView.topAnchor.constraint(equalTo: content.topAnchor),
-                previewView.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+                previewView.bottomAnchor.constraint(equalTo: bar.topAnchor),
+                bar.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+                bar.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+                bar.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+                barHeight,
             ])
+            pageIndicator.refresh()
             previewView.previewItem = url as NSURL
 
             let forwarderRef = addKeyForwarder(window: window)
@@ -221,6 +234,7 @@ enum QLPreviewInputDriver {
                 NotificationCenter.default.removeObserver(moveObserver)
                 // 参照解放
                 retainedWindows.removeAll { $0 == window }
+                pageIndicators.removeValue(forKey: ObjectIdentifier(window))
                 NotificationCenter.default.post(name: viewerWindowStateChanged, object: nil)
                 if shouldQuit {
                     // クローズ処理が完了してから、設定画面を含めて残るウインドウを確認する。
@@ -289,6 +303,86 @@ enum QLPreviewInputDriver {
         NSLog("[QLInputDriver] Registered KeyForwardingView for focus management")
 
         return forwarder
+    }
+
+    /// 拡張のページ状態を本体のウインドウへ反映する。セッションを固定し、別プレビューと混同しない。
+    private final class ViewerPageIndicator {
+        weak var window: NSWindow?
+        let url: URL
+        let bar = ViewerProgressBar()
+        var heightConstraint: NSLayoutConstraint?
+        var sessionID: String?
+        var current = 0
+        var total = 0
+        private var pageObserver: NSObjectProtocol?
+        private var settingsObserver: NSObjectProtocol?
+
+        init(window: NSWindow, url: URL) {
+            self.window = window
+            self.url = url
+            pageObserver = DistributedNotificationCenter.default.addObserver(
+                forName: CZDistributedNotifications.previewPageStatus, object: nil, queue: .main
+            ) { [weak self] note in
+                guard let self, let payload = note.object as? String,
+                      let data = payload.data(using: .utf8),
+                      let info = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+                      let path = info["path"] as? String,
+                      path == self.url.resolvingSymlinksInPath().path,
+                      let session = info["session"] as? String,
+                      let current = info["current"] as? Int, let total = info["total"] as? Int,
+                      total >= 0, current >= 0, current <= max(total, 1) else { return }
+                if let ownSession = self.sessionID {
+                    guard ownSession == session else { return }
+                } else {
+                    guard !pageIndicators.values.contains(where: { $0 !== self && $0.sessionID == session }) else { return }
+                    self.sessionID = session
+                }
+                self.current = total > 0 ? current : 0
+                self.total = total
+                self.bar.isRightToLeft = info["rtl"] as? Bool ?? true
+                self.refresh()
+            }
+            settingsObserver = NotificationCenter.default.addObserver(
+                forName: CZDistributedNotifications.settingsChanged, object: nil, queue: .main
+            ) { [weak self] _ in self?.refresh() }
+        }
+
+        deinit {
+            if let pageObserver { DistributedNotificationCenter.default.removeObserver(pageObserver) }
+            if let settingsObserver { NotificationCenter.default.removeObserver(settingsObserver) }
+        }
+
+        func refresh() {
+            let enabled = CZSettings.shared.showViewerPageStatus
+            window?.title = enabled && total > 0
+                ? "\(url.lastPathComponent) (\(current) : \(total))" : url.lastPathComponent
+            bar.isHidden = !enabled
+            heightConstraint?.constant = enabled ? 6 : 0
+            bar.fraction = total > 0 ? Double(current) / Double(total) : 0
+            bar.setAccessibilityLabel("ページ位置")
+            bar.setAccessibilityValue("\(current) / \(total)")
+        }
+    }
+
+    private final class ViewerProgressBar: NSView {
+        var fraction: Double = 0 { didSet { needsDisplay = true } }
+        var isRightToLeft = false { didSet { needsDisplay = true } }
+        override init(frame: NSRect) {
+            super.init(frame: frame)
+            setAccessibilityElement(true)
+            setAccessibilityRole(.progressIndicator)
+        }
+        convenience init() { self.init(frame: .zero) }
+        required init?(coder: NSCoder) { nil }
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+        override func draw(_ dirtyRect: NSRect) {
+            NSColor.separatorColor.setFill()
+            bounds.fill()
+            let width = bounds.width * min(max(fraction, 0), 1)
+            NSColor.controlAccentColor.setFill()
+            NSRect(x: isRightToLeft ? bounds.maxX - width : bounds.minX,
+                   y: bounds.minY, width: width, height: bounds.height).fill()
+        }
     }
 
     private final class KeyForwardingView: NSView {
