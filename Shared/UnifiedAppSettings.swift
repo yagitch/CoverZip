@@ -16,13 +16,17 @@ public final class CZSettings {
 
     private let defaults: UserDefaults
 
-    private init() {
-        if let shared = UserDefaults(suiteName: CZAppGroup.identifier) {
-            self.defaults = shared
-        } else {
-            self.defaults = .standard
-        }
+    private convenience init() {
+        self.init(defaults: UserDefaults(suiteName: CZAppGroup.identifier) ?? .standard)
+    }
+
+    init(defaults: UserDefaults) {
+        self.defaults = defaults
         registerDefaults()
+        // 旧版で両方オンの場合は、従来実際に使われていたAI側を維持する。
+        if defaults.bool(forKey: CZSettingsKeys.aiColorizeEnabled) {
+            defaults.set(false, forKey: CZSettingsKeys.autoColorizeEnabled)
+        }
     }
 
     // MARK: - 既定値登録
@@ -52,12 +56,18 @@ public final class CZSettings {
     // MARK: - 読み方向
     public static let defaultColorizePalette = [[0.098, 0.238, 0.418], [0.695, 0.258, 0.434], [0.883, 0.5, 0.449], [0.965, 0.781, 0.609]]
     public var autoColorizeEnabled: Bool {
-        get { defaults.bool(forKey: CZSettingsKeys.autoColorizeEnabled) }
-        set { defaults.set(newValue, forKey: CZSettingsKeys.autoColorizeEnabled) }
+        get { defaults.bool(forKey: CZSettingsKeys.autoColorizeEnabled) && !aiColorizeEnabled }
+        set {
+            if newValue { defaults.set(false, forKey: CZSettingsKeys.aiColorizeEnabled) }
+            defaults.set(newValue, forKey: CZSettingsKeys.autoColorizeEnabled)
+        }
     }
     public var aiColorizeEnabled: Bool {
         get { defaults.bool(forKey: CZSettingsKeys.aiColorizeEnabled) }
-        set { defaults.set(newValue, forKey: CZSettingsKeys.aiColorizeEnabled) }
+        set {
+            if newValue { defaults.set(false, forKey: CZSettingsKeys.autoColorizeEnabled) }
+            defaults.set(newValue, forKey: CZSettingsKeys.aiColorizeEnabled)
+        }
     }
     public var autoColorizeColorImages: Bool {
         get { defaults.bool(forKey: CZSettingsKeys.autoColorizeColorImages) }

@@ -16,10 +16,20 @@ final class AppSettingsWriter: ObservableObject {
     private let core = CZSettings.shared
     private var isLoadingSettings = false
     @Published var autoColorizeEnabled = false {
-        didSet { core.autoColorizeEnabled = autoColorizeEnabled; notifyColorizeChange() }
+        didSet {
+            core.autoColorizeEnabled = autoColorizeEnabled
+            if autoColorizeEnabled && aiColorizeEnabled {
+                aiColorizeEnabled = false
+            } else { notifyColorizeChange() }
+        }
     }
     @Published var aiColorizeEnabled = false {
-        didSet { core.aiColorizeEnabled = aiColorizeEnabled; notifyColorizeChange() }
+        didSet {
+            core.aiColorizeEnabled = aiColorizeEnabled
+            if aiColorizeEnabled && autoColorizeEnabled {
+                autoColorizeEnabled = false
+            } else { notifyColorizeChange() }
+        }
     }
     @Published var autoColorizeColorImages = false {
         didSet { core.autoColorizeColorImages = autoColorizeColorImages; notifyColorizeChange() }

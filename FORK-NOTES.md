@@ -1,5 +1,9 @@
 # このフォークの変更
 
+ビルド44では自動着色とAI自動着色を排他にしました。設定画面・表示メニューとも
+一方をオンにすると他方がオフになります。両方オフも可能です。
+旧版で両方オンだった場合はAIのみオンへ移行します。AIモデルは変更していません。
+
 ビルド43ではAI自動着色を独立プラグインとして追加しました。
 AIへの入力は256×256に固定し、原画の明暗と合成します。合成の長辺は2048px以下です。
 メニューバー「表示 → AI自動着色（プラグイン）」と設定画面からオン／オフできます。
@@ -124,7 +128,7 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
-導入先は `/Applications/CoverZip.app`、改修版のビルド番号は43です。
+導入先は `/Applications/CoverZip.app`、改修版のビルド番号は44です。
 公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
 署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
 登録し直します。Karabinerの設定変更は不要です。
@@ -134,7 +138,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project CoverZip.xcodeproj -scheme CoverZip -configuration Release \
   -derivedDataPath .build-local build DEVELOPMENT_TEAM=6KCX8JYZB7 \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Development' \
-  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=43
+  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=44
 ```
 
 境界条件のテスト: `python3 tests/check_page_navigation.py`
