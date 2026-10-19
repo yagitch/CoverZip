@@ -54,7 +54,7 @@ struct PreviewSettingsView: View {
                         NSWorkspace.shared.open(folder)
                     } catch { NSLog("プラグインフォルダを開けません: %@", error.localizedDescription) }
                 }
-                Text("着色は本体のみ。Quick Lookには適用しません。自動着色とAI自動着色はどちらか一方だけオンにできます。AIは256×256で推論します。プラグインがない場合は原画を表示します。元の画像は変更しません。")
+                Text("着色は本体のみ。Quick Lookには適用しません。自動着色とAI自動着色はどちらか一方だけオンにできます。AIは画像を縮小して処理します（漫画用は512×512）。プラグインがない場合は原画を表示します。元の画像は変更しません。")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section {

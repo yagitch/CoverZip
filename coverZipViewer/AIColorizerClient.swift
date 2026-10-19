@@ -44,42 +44,46 @@ final class AIColorizerClient {
     }
 
     private static func process(_ source: CGImage, includeColor: Bool) -> CGImage? {
-        // AI境界の手前で固定サイズへ縮小。巨大な原寸画像はプラグインへ渡さない。
-        guard let space = CGColorSpace(name: CGColorSpace.sRGB),
-              let small = CGContext(data: nil, width: 256, height: 256, bitsPerComponent: 8, bytesPerRow: 1024,
-                space: space, bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue),
-              let bytes = small.data else { return nil }
-        small.interpolationQuality = .medium
-        small.setFillColor(CGColor(gray: 1, alpha: 1))
-        small.fill(CGRect(x: 0, y: 0, width: 256, height: 256))
-        small.draw(source, in: CGRect(x: 0, y: 0, width: 256, height: 256))
-        if !includeColor {
-            let pixels = bytes.assumingMemoryBound(to: UInt8.self)
-            var colored = 0
-            for i in stride(from: 0, to: 256 * 256 * 4, by: 16) {
-                if Int(max(pixels[i], pixels[i+1], pixels[i+2])) - Int(min(pixels[i], pixels[i+1], pixels[i+2])) > 12 { colored += 1 }
-            }
-            if colored > 16 { return nil }
-        }
         if plugin == nil {
             guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: CZAppGroup.identifier),
                   let bundle = Bundle(url: root.appendingPathComponent("Library/Application Support/CoverZip/PlugIns/AIColorizer.bundle")),
                   let type = bundle.principalClass as? NSObject.Type else { return nil }
             plugin = type.init()
-            os_log("AIColorizer plugin loaded (256x256)", type: .info)
+        }
+        guard let plugin else { return nil }
+        let sizeSelector = NSSelectorFromString("inputSideLength")
+        let side = plugin.responds(to: sizeSelector)
+            ? (plugin.perform(sizeSelector)?.takeUnretainedValue() as? NSNumber)?.intValue ?? 256 : 256
+        guard side == 256 || side == 512 else { return nil }
+        // AI境界の手前で固定サイズへ縮小。巨大な原寸画像はプラグインへ渡さない。
+        guard let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let small = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: side * 4,
+                space: space, bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue),
+              let bytes = small.data else { return nil }
+        small.interpolationQuality = .medium
+        small.setFillColor(CGColor(gray: 1, alpha: 1))
+        small.fill(CGRect(x: 0, y: 0, width: side, height: side))
+        small.draw(source, in: CGRect(x: 0, y: 0, width: side, height: side))
+        if !includeColor {
+            let pixels = bytes.assumingMemoryBound(to: UInt8.self)
+            var colored = 0
+            for i in stride(from: 0, to: side * side * 4, by: 16) {
+                if Int(max(pixels[i], pixels[i+1], pixels[i+2])) - Int(min(pixels[i], pixels[i+1], pixels[i+2])) > 12 { colored += 1 }
+            }
+            if colored > side * side / 4096 { return nil }
         }
         let selector = NSSelectorFromString("colorizeBGRA:")
-        guard let plugin, plugin.responds(to: selector),
-              let result = plugin.perform(selector, with: Data(bytes: bytes, count: 256 * 256 * 4) as NSData)?.takeUnretainedValue() as? Data,
-              result.count == 256 * 256 * 4,
+        guard plugin.responds(to: selector),
+              let result = plugin.perform(selector, with: Data(bytes: bytes, count: side * side * 4) as NSData)?.takeUnretainedValue() as? Data,
+              result.count == side * side * 4,
               let provider = CGDataProvider(data: result as CFData),
-              let colors = CGImage(width: 256, height: 256, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: 1024,
+              let colors = CGImage(width: side, height: side, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: side * 4,
                 space: space, bitmapInfo: CGBitmapInfo(rawValue: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue),
                 provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent) else { return nil }
         // 表示合成も長辺2048以内。色だけを拡大し、線画の明暗は元画像から取得する。
         let scale = min(1, 2048 / CGFloat(max(source.width, source.height)))
         let base = CIImage(cgImage: source).transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-        let color = CIImage(cgImage: colors).transformed(by: CGAffineTransform(scaleX: base.extent.width / 256, y: base.extent.height / 256))
+        let color = CIImage(cgImage: colors).transformed(by: CGAffineTransform(scaleX: base.extent.width / CGFloat(side), y: base.extent.height / CGFloat(side)))
         let merged = color.applyingFilter("CIColorBlendMode", parameters: [kCIInputBackgroundImageKey: base])
         let masked = merged.applyingFilter("CISourceInCompositing", parameters: [kCIInputBackgroundImageKey: base])
         return context.createCGImage(masked, from: base.extent)

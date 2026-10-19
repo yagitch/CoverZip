@@ -13,8 +13,10 @@ Finder Quick Lookではどちらも実行しない。
 - 本体のQLPreviewViewだけがURL fragment `coverzip-native-viewer` を渡す。
   拡張は印のないプレビューを無着色にする。同一ファイルを本体とFinderで同時に開いて検証済み。
 - プラグインABIはObjective-Cの `CZAIColorizerPlugin.colorizeBGRA:`。
-  入出力はNSDataの **256×256、BGRA8、262144バイト**。異なるサイズは拒否する。
-- 原画像は呼び出し側で縮小してから渡す。core/tailの双方を256×256で実行する。
+  入出力はNSDataのBGRA8。任意の `inputSideLength()` が返すNSNumberで一辺を指定する。
+  ビルド45は256または512だけを許可し、メソッドがない旧プラグインは256を使用する。
+  漫画版は512×512（1048576バイト）。異なるサイズは拒否する。
+- 原画像は呼び出し側で縮小してから渡す。旧core/tailは256×256、漫画版は512×512。
   縦横比は推論時のみ正方形へ変換し、合成時に元へ戻す。
 - 着色画像の色と原画の明暗をCore Imageで合成する。合成出力は長辺2048px以下。
   原画の透明度を維持し、AI中間画像の低解像度を文字・線画へ直接適用しない。
@@ -26,6 +28,8 @@ Finder Quick Lookではどちらも実行しない。
   設定画面の「AIプラグインのフォルダを開く」から独立した実体を確認できる。
 
 ## モデルと権利情報
+
+ビルド45の漫画版は下記「漫画用モデル群」を使用する。以下は切り戻し用の旧版。
 
 [Vadbeg/colorization-coreml](https://github.com/Vadbeg/colorization-coreml) の
 `weights/colorizer_core.mlmodel` と `weights/colorizer_tail.mlmodel` を使用。
@@ -68,6 +72,52 @@ codesign --force --sign 'Apple Development' \
 肌・髪の領域を扱う [Manga character parts pack](https://huggingface.co/VioletXF/manga-character-parts-coreml)
 は単独の着色モデルではなく、512pxのパーツ解析、頭部検出、前景分離などを組み合わせる研究用構成。
 配布者のApple Silicon測定では前景分離だけでFP16約215〜225msであり、このMacでの測定値ではない。
-横顔・重なりなどの精度制限も明記されている。現在の256px・高速表示の置き換え先として未検証なので採用しない。
+横顔・重なりなどの精度制限も明記されている。ビルド44時点では速度条件を優先して採用しなかった。
 [ColorComic](https://github.com/vikast908/ColorComic)にも肌色補正はあるが、領域分割とCLIP等を組み合わせる方式。
 「肌の着色に特化し、現在の速度条件も満たす」差し替えモデルは今回の調査では確認できず、ビルド44では重みを維持した。
+
+## 漫画用モデル群（ビルド45）
+
+利用者が速度低下を許容したため、上記パックの固定revision
+`d607441ba4d3d14da84494eadc1a99da727c42f9` を採用した。
+`generator512.onnx`、`head.onnx`、`Parts.mlpackage`、`foreground-fp16.onnx`を使う独自の簡略パイプライン。
+配布元の人物同定・参照画像・色管理などの全機能を移植したものではない。
+
+1. 縮小したページを漫画用generatorで着色する。
+2. 640角の頭部検出で最大6頭部を選び、各切り出しを512角でパーツ分類する。
+3. 肌と目の判定が十分な顔だけ、1024角の前景分離を適用する。
+4. 肌の領域に疎な肌色ヒントを与えて再着色し、その領域だけ穏やかに補正する。
+
+顔中心の推定であり、手足・全身の肌を特別に抽出する処理ではない。
+固定の淡い肌色ヒントを使うため、正しい人物の色やコマ間の色の一致は保証しない。
+文字・線画の明暗は従来どおり原画から合成する。入力画像・生成結果のディスク保存はしない。
+モデルの実行準備で作られるOSのコンパイルキャッシュは、ページ画像のキャッシュとは別。
+
+ONNX Runtime 1.31.0（公式macOS arm64配布）をバンドル内に配置する。
+プレビュー拡張での実行を考慮しCore MLはCPU/GPUを使用し、ONNX Runtimeのテレメトリーは無効。
+モデルの重み・ランタイム・生成バンドルはGitへ含めない。各モデルの出典・権利情報は
+パックのSOURCES.mdとnoticesをバンドルへ同梱する。再配布条件は別途確認が必要。
+
+```sh
+export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+python3 plugins/AIColorizer/fetch_manga_models.py .local-backup/20261019/manga-models
+# 公式配布から取得・展開（このMacでは取得済み）
+curl -fL https://github.com/microsoft/onnxruntime/releases/download/v1.31.0/onnxruntime-osx-arm64-1.31.0.tgz \
+  -o .local-backup/20261019/manga-models/onnxruntime.tgz
+echo '1031b36dd3bdaa8d976a6130d9cf2a05e9be320b93ae804f8427b91dc3432afc  .local-backup/20261019/manga-models/onnxruntime.tgz' | shasum -a 256 -c -
+tar -xzf .local-backup/20261019/manga-models/onnxruntime.tgz -C .local-backup/20261019/manga-models
+bash plugins/AIColorizer/build_manga.sh .local-backup/20261019/manga-models \
+  .local-backup/20261019/manga-models/onnxruntime-osx-arm64-1.31.0 .local-backup/20261019/manga-plugin
+# 上記の手順で署名済みinstall-ai-pluginを作成してから実行
+.local-backup/install-ai-plugin .local-backup/20261019/manga-plugin/AIColorizer.bundle
+```
+
+本体とプレビューを閉じ、残存する表示プロセスも終了してから入れ替える。
+旧高速版へ戻す場合は `.local-backup/20261019/ai-plugin/AIColorizer.bundle` を同じ導入ツールへ渡す。
+ビルド45は旧版の256角ABIにも対応するため、本体の切り戻しは不要。
+
+検証: `tests/check_manga_plugin.swift` は公開の漫画サンプルを入力し、サイズ契約・着色・透明度を確認。
+M5でCPU/GPU構成の初回は約20秒（準備を含む）、読み込み後約0.9秒。
+サンプルでは6頭部を検出し1頭部に肌の補助を適用した。顔の数と判定結果で処理時間は変わる。
+8192×4096の合成グレー画像による縮小・合成・取り消しの検証も合格。
+導入した本体の着色表示、同じZIPのFinder Quick Lookが無着色であることを実機確認した。

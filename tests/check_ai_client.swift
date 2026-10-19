@@ -19,7 +19,7 @@ final class CZSettings {
         let start = Date()
         client.render(source, slot: slot) { output in
             precondition(output.width == 2048 && output.height == 1024)
-            print("8192x4096 -> 256x256推論 -> \(output.width)x\(output.height)合成、初回全体ms=\(Date().timeIntervalSince(start)*1000)")
+            print("8192x4096 -> プラグイン指定サイズで推論 -> \(output.width)x\(output.height)合成、初回全体ms=\(Date().timeIntervalSince(start)*1000)")
             complete = true
         }
         let deadline = Date().addingTimeInterval(30)
