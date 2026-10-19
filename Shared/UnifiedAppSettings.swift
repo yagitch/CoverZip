@@ -55,6 +55,10 @@ public final class CZSettings {
         get { defaults.bool(forKey: CZSettingsKeys.autoColorizeEnabled) }
         set { defaults.set(newValue, forKey: CZSettingsKeys.autoColorizeEnabled) }
     }
+    public var aiColorizeEnabled: Bool {
+        get { defaults.bool(forKey: CZSettingsKeys.aiColorizeEnabled) }
+        set { defaults.set(newValue, forKey: CZSettingsKeys.aiColorizeEnabled) }
+    }
     public var autoColorizeColorImages: Bool {
         get { defaults.bool(forKey: CZSettingsKeys.autoColorizeColorImages) }
         set { defaults.set(newValue, forKey: CZSettingsKeys.autoColorizeColorImages) }

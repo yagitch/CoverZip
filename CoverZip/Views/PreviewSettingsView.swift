@@ -29,7 +29,7 @@ struct PreviewSettingsView: View {
             Section("エフェクト") {
                 Toggle("自動着色", isOn: $settings.autoColorizeEnabled)
                 Toggle("カラー画像も着色する", isOn: $settings.autoColorizeColorImages)
-                    .disabled(!settings.autoColorizeEnabled)
+                    .disabled(!settings.autoColorizeEnabled && !settings.aiColorizeEnabled)
                 HStack {
                     ForEach(0..<4) { index in
                         ColorPicker("色\(index + 1)", selection: Binding(
@@ -45,7 +45,16 @@ struct PreviewSettingsView: View {
                     }
                     Button("配色をリセット") { settings.autoColorizePalette = CZSettings.defaultColorizePalette }
                 }.disabled(!settings.autoColorizeEnabled)
-                Text("白黒画像の階調に色を付けます。本体とQuick Lookに適用し、元の画像は変更しません。")
+                Toggle("AI自動着色（プラグイン）", isOn: $settings.aiColorizeEnabled)
+                Button("AIプラグインのフォルダを開く") {
+                    guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: CZAppGroup.identifier) else { return }
+                    let folder = root.appendingPathComponent("Library/Application Support/CoverZip/PlugIns")
+                    do {
+                        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                        NSWorkspace.shared.open(folder)
+                    } catch { NSLog("プラグインフォルダを開けません: %@", error.localizedDescription) }
+                }
+                Text("着色は本体のみ。Quick Lookには適用しません。AIをオンにすると通常の自動着色より優先し、256×256で推論します。プラグインがない場合は原画を表示します。元の画像は変更しません。")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section {

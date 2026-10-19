@@ -124,6 +124,10 @@ enum QLPreviewInputDriver {
     /// - Parameter url: 表示する ZIP の URL
     static func openQuickLookWindow(url: URL) {
         DispatchQueue.main.async {
+            // 本体からの表示だけを識別する。Finderの同じファイルとは設定適用を分ける。
+            var previewComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            previewComponents?.fragment = "coverzip-native-viewer"
+            let previewURL = previewComponents?.url ?? url
             // 保存されたフレームまたは計算された初期サイズを使用
             let initialSize = calculateInitialWindowSize()
             let initialFrame: NSRect
@@ -167,7 +171,7 @@ enum QLPreviewInputDriver {
             guard let previewView = QLPreviewView(frame: .zero, style: .normal) else {
                 // 生成失敗時は共有パネルへフォールバック
                 if let panel = QLPreviewPanel.shared() {
-                    let dataSource = SimplePanelDataSource(item: url as NSURL)
+                    let dataSource = SimplePanelDataSource(item: previewURL as NSURL)
                     retainedPanelDataSource = dataSource
                     panel.dataSource = dataSource
                     panel.makeKeyAndOrderFront(nil)
@@ -196,7 +200,7 @@ enum QLPreviewInputDriver {
                 barHeight,
             ])
             pageIndicator.refresh()
-            previewView.previewItem = url as NSURL
+            previewView.previewItem = previewURL as NSURL
 
             let forwarderRef = addKeyForwarder(window: window)
 

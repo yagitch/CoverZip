@@ -37,6 +37,7 @@ public enum CZSettingsKeys {
     public static let showViewerPageStatus = "showViewerPageStatus"
     public static let viewerPageStatusHideDelay = "viewerPageStatusHideDelay"
     public static let autoColorizeEnabled = "autoColorizeEnabled"
+    public static let aiColorizeEnabled = "aiColorizeEnabled"
     public static let autoColorizeColorImages = "autoColorizeColorImages"
     public static let autoColorizePalette = "autoColorizePalette"
     // 読書履歴

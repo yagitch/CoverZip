@@ -1,5 +1,11 @@
 # このフォークの変更
 
+ビルド43ではAI自動着色を独立プラグインとして追加しました。
+AIへの入力は256×256に固定し、原画の明暗と合成します。合成の長辺は2048px以下です。
+メニューバー「表示 → AI自動着色（プラグイン）」と設定画面からオン／オフできます。
+AIがオンの場合は従来の自動着色より優先します。Finder Quick Lookは両方とも無効です。
+プラグイン単体の更新・導入は [手順](plugins/AIColorizer/README.md) を参照してください。
+
 ビルド42では画像エリアの左右矢印へのカーソル置換を無効化しました。
 本体・Quick Lookとも標準カーソルを使用し、マウス移動の検知とバー表示は維持します。
 
@@ -20,7 +26,7 @@ FinderのEnterは、外部のKarabiner設定でCommand＋O（関連付けアプ�
 ## 自動着色（ビルド40）
 
 「設定 → ビューア設定 → エフェクト」で自動着色を切り替えます。
-本体とFinder Quick Lookのページ画像に適用し、原本やFinderのサムネイルは変更しません。
+ビルド43から本体のページ画像だけに適用し、原本やFinderのサムネイルは変更しません。
 白黒の明暗を4色へ割り当て、黒・白・透明度を保持します。カラー画像は通常除外し、
 「カラー画像も着色する」で対象に含めます。4色の変更と配色のリセットに対応します。
 設定はファイル共通で保存し、表示中のページにも反映します。初期値はオフです。
@@ -118,7 +124,7 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
-導入先は `/Applications/CoverZip.app`、改修版のビルド番号は42です。
+導入先は `/Applications/CoverZip.app`、改修版のビルド番号は43です。
 公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
 署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
 登録し直します。Karabinerの設定変更は不要です。
@@ -128,7 +134,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project CoverZip.xcodeproj -scheme CoverZip -configuration Release \
   -derivedDataPath .build-local build DEVELOPMENT_TEAM=6KCX8JYZB7 \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Development' \
-  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=42
+  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=43
 ```
 
 境界条件のテスト: `python3 tests/check_page_navigation.py`

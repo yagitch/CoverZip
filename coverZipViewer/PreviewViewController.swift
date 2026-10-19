@@ -27,6 +27,8 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     private var currentZipFilename: String = ""
     private var pageStatusFilePath: String?
     private let autoColorizer = AutoColorizer()
+    private let aiColorizer = AIColorizerClient()
+    private var isNativeViewer = false
     private var mouseMonitors: [Any] = []
     private var isHandlingPassThroughControlInteraction = false
     private var pendingSingleClick: DispatchWorkItem?
@@ -177,6 +179,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
 
     override func viewWillDisappear() {
         super.viewWillDisappear()
+        aiColorizer.cancelAll()
         stopPreviewVisibilityHeartbeat()
         postPreviewVisibilityNotification(CZDistributedNotifications.previewExtensionHidden)
         
@@ -701,6 +704,9 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     */
 
     func preparePreviewOfFile(at url: URL) async throws {
+        aiColorizer.cancelAll()
+        isNativeViewer = url.fragment == "coverzip-native-viewer"
+        os_log("Colorize native viewer=%{public}d", log: performanceLog, type: .info, isNativeViewer ? 1 : 0)
         NSLog("[DEBUG] preparePreviewOfFile called for: %@", url.lastPathComponent)
 
         os_signpost(.begin, log: performanceLog, name: "preparePreviewOfFile")
@@ -1432,6 +1438,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     }
 
     @objc private func handleSettingsChangedNotification(_ notification: Notification) {
+        aiColorizer.cancelAll()
         // 最新設定を共有UserDefaultsから再取得
         let newRTL = AppSettings.shared.isRightToLeftReading
         if !didRestoreRTLFromHistory && newRTL != isRightToLeftReading {
@@ -2082,7 +2089,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         
         imageView?.imageScaling = .scaleProportionallyUpOrDown
         imageView?.imageAlignment = .alignCenter
-        imageView?.image = autoColorizer.image(image)
+        imageView?.image = image
         pageLabel?.stringValue = ""
     // スライダーを無効化
     pageSlider?.minValue = 1
@@ -2227,7 +2234,14 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         guard let iv = imageView else { return }
         // スケーリングのみ固定。アラインメントはモード切替で設定したものを維持する
         iv.imageScaling = .scaleProportionallyUpOrDown
-        iv.image = autoColorizer.image(image)
+        aiColorizer.cancel(slot: iv)
+        let useAI = isNativeViewer && CZSettings.shared.aiColorizeEnabled
+        iv.image = isNativeViewer && !useAI ? autoColorizer.image(image) : image
+        if useAI, let source = image?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+            aiColorizer.render(source, slot: iv) { [weak iv] result in
+                iv?.image = NSImage(cgImage: result, size: image?.size ?? .zero)
+            }
+        }
     }
 
     @discardableResult
@@ -2258,7 +2272,15 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         let displayLayer = CALayer()
         displayLayer.name = "cz_prerendered"
         // ImageManagerが生成する事前描画レイヤーのcontentsはCGImage。
-        displayLayer.contents = autoColorizer.apply(prerenderedContents as! CGImage)
+        let source = prerenderedContents as! CGImage
+        let useAI = isNativeViewer && CZSettings.shared.aiColorizeEnabled
+        displayLayer.contents = isNativeViewer && !useAI ? autoColorizer.apply(source) : source
+        if useAI {
+            // 同じ表示枠の低品質フォールバック処理を置き換える。
+            aiColorizer.render(source, slot: imageView) { [weak displayLayer] result in
+                displayLayer?.contents = result
+            }
+        }
         displayLayer.contentsGravity = .resizeAspect
         displayLayer.contentsScale = max(hostLayer.contentsScale, view.window?.backingScaleFactor ?? 1.0)
         displayLayer.minificationFilter = .trilinear

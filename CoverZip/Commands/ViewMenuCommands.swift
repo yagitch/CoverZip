@@ -114,6 +114,7 @@ struct ViewMenuCommands: Commands {
     var body: some Commands {
         CommandGroup(after: .toolbar) {
             Toggle("自動着色", isOn: $settings.autoColorizeEnabled)
+            Toggle("AI自動着色（プラグイン）", isOn: $settings.aiColorizeEnabled)
             Divider()
             Group {
                 // 読み方向

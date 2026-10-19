@@ -18,6 +18,9 @@ final class AppSettingsWriter: ObservableObject {
     @Published var autoColorizeEnabled = false {
         didSet { core.autoColorizeEnabled = autoColorizeEnabled; notifyColorizeChange() }
     }
+    @Published var aiColorizeEnabled = false {
+        didSet { core.aiColorizeEnabled = aiColorizeEnabled; notifyColorizeChange() }
+    }
     @Published var autoColorizeColorImages = false {
         didSet { core.autoColorizeColorImages = autoColorizeColorImages; notifyColorizeChange() }
     }
@@ -119,6 +122,7 @@ final class AppSettingsWriter: ObservableObject {
         showViewerPageStatus = core.showViewerPageStatus
         viewerPageStatusHideDelay = core.viewerPageStatusHideDelay
         autoColorizeEnabled = core.autoColorizeEnabled
+        aiColorizeEnabled = core.aiColorizeEnabled
         autoColorizeColorImages = core.autoColorizeColorImages
         autoColorizePalette = core.autoColorizePalette
         imageDecodeCachePolicy = core.imageDecodeCachePolicy
