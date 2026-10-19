@@ -1120,23 +1120,23 @@ extension ImageManager {
     }
 
     /**
-     * 次の画像に移動する
+     * 次の画像に移動する。手動操作では末尾から先頭に戻る。
      */
-    func nextImage(isSpreadMode: Bool = false) -> Bool {
-        guard imageEntryCount > 0 else { return false }
+    func nextImage(isSpreadMode: Bool = false, wrapsAtEnd: Bool = true) -> Bool {
+        guard imageEntryCount > 1 else { return false }
 
         if isSpreadMode {
             if currentIndex == 0 {
-                guard currentIndex < imageEntryCount - 1 else { return false }
                 currentIndex = 1
             } else {
                 let nextIndex = currentIndex + 2
-                guard nextIndex < imageEntryCount else { return false }
-                currentIndex = nextIndex
+                guard nextIndex < imageEntryCount || wrapsAtEnd else { return false }
+                currentIndex = nextIndex < imageEntryCount ? nextIndex : 0
             }
         } else {
-            guard currentIndex < imageEntryCount - 1 else { return false }
-            currentIndex += 1
+            let nextIndex = currentIndex + 1
+            guard nextIndex < imageEntryCount || wrapsAtEnd else { return false }
+            currentIndex = nextIndex < imageEntryCount ? nextIndex : 0
         }
 
         return true

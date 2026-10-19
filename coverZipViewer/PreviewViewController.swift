@@ -1577,7 +1577,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         let isSpreadMode = currentViewMode == .spread
         
         // 常に「進む」方向
-        if !imageManager.nextImage(isSpreadMode: isSpreadMode) {
+        if !imageManager.nextImage(isSpreadMode: isSpreadMode, wrapsAtEnd: false) {
             // 最後のページに到達したらスライドショーを停止
             stopSlideshow()
             return
