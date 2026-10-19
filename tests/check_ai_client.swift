@@ -6,6 +6,8 @@ final class CZSettings {
     var autoColorizeColorImages = false
     var aiColorizeModel = "manga"
     var mangaColorStrength = 0.55
+    var mangaSkinRGB = [0.96, 0.76, 0.65]
+    var mangaSkinStrength = 0.45
 }
 
 @main struct CheckAIClient {

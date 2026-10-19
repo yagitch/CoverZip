@@ -23,7 +23,7 @@ for model in colorizer_core colorizer_tail; do
   xcrun coremlcompiler compile "$fast_model_dir/$model.mlmodel" "$bundle/Contents/Resources"
 done
 cp "$source_dir/Info.plist" "$bundle/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c 'Set :CFBundleVersion 3' "$bundle/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c 'Set :CFBundleVersion 4' "$bundle/Contents/Info.plist"
 codesign --force --sign 'Apple Development' --options runtime "$bundle/Contents/Frameworks/libonnxruntime.1.31.0.dylib"
 codesign --force --sign 'Apple Development' --options runtime "$bundle"
 codesign --verify --deep --strict "$bundle"

@@ -26,6 +26,12 @@ import Foundation
         precondition(reopened.aiColorizeModel == "fast" && reopened.mangaColorStrength == 1)
         settings.mangaColorStrength = 0
         precondition(reopened.mangaColorStrength == 0)
+        precondition(reopened.mangaSkinRGB == CZSettings.defaultSkinRGB && reopened.mangaSkinStrength == 0.45)
+        settings.mangaSkinRGB = [0.6, 0.4, 0.2]
+        settings.mangaSkinStrength = 0.8
+        precondition(reopened.mangaSkinRGB == [0.6, 0.4, 0.2] && reopened.mangaSkinStrength == 0.8)
+        settings.mangaSkinRGB = [Double.nan]
+        precondition(reopened.mangaSkinRGB == CZSettings.defaultSkinRGB)
         precondition(reopened.autoColorizeEnabled && !reopened.aiColorizeEnabled)
         print("着色設定: 旧設定の移行・双方向排他・両方オフ・再読込を確認")
     }

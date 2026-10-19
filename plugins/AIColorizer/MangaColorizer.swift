@@ -10,7 +10,14 @@ public final class MangaColorizerPlugin: NSObject {
     private var foreground: UnsafeMutableRawPointer?
     private var parser: MLModel?
     private let side = 512
-    private let skin: [Float] = [0.96, 0.76, 0.65]
+    private var skin: [Float] = [0.96, 0.76, 0.65]
+    private var skinStrength: Float = 0.45
+    @objc public func configureSkin(_ options: NSArray) {
+        guard let values = options as? [NSNumber], values.count == 4,
+              values.allSatisfy({ $0.doubleValue.isFinite && (0...1).contains($0.doubleValue) }) else { return }
+        skin = values.prefix(3).map(\.floatValue)
+        skinStrength = values[3].floatValue
+    }
     private let fast = AIColorizerPlugin()
     private var usesFastModel = false
     @objc public func selectModel(_ model: NSString) { usesFastModel = model == "fast" }
@@ -54,7 +61,7 @@ public final class MangaColorizerPlugin: NSObject {
             let boxes = try headBoxes(heads, shape: headShape)
             var skinMask = [Float](repeating: 0, count: area)
             var guidedHeads = 0
-            for box in boxes {
+            for box in boxes where skinStrength > 0 {
                 guard let crop = base.cropping(to: box) else { continue }
                 let cropRGB = try tensor(crop, side: 512)
                 let normalized = try MLMultiArray(shape: [1, 3, 512, 512], dataType: .float32)
@@ -74,26 +81,32 @@ public final class MangaColorizerPlugin: NSObject {
                 guard skinCount > area / 100, skinCount < area * 3 / 4, eyeCount > 10 else { continue }
                 let (mask, maskShape) = try run(foreground!, tensor(crop, side: 1024), [1, 3, 1024, 1024])
                 guard maskShape == [1, 1, 1024, 1024] else { throw failure("前景出力が不正です") }
+                // 頭部だけの切り出しでは前景モデルが全域を背景とすることがある。
+                // その場合は目と肌の分類が成立した顔の中央だけに限定して補正する。
+                let emptyForeground = (mask.max() ?? 0) < 0.1
+                var assignedPixels = 0
                 for y in Int(box.minY)..<Int(box.maxY) { for x in Int(box.minX)..<Int(box.maxX) {
                     let cx = min(511, Int(Double(x - Int(box.minX)) * 512 / box.width))
                     let cy = min(511, Int(Double(y - Int(box.minY)) * 512 / box.height))
                     let p = y * side + x
-                    let alpha = mask[(cy*2)*1024+cx*2]
+                    let dx = (Float(cx) - 255.5) / 230, dy = (Float(cy) - 255.5) / 230
+                    let alpha = emptyForeground ? (dx*dx + dy*dy < 1 ? Float(1) : 0) : mask[(cy*2)*1024+cx*2]
                     guard isSkin(parts[cy*512+cx]), alpha > 0.7, request[p] > 0.22 else { continue }
                     skinMask[p] = max(skinMask[p], min(1, (alpha - 0.7) / 0.3))
+                    assignedPixels += 1
                     if x % 8 == 0 && y % 8 == 0 {
                         for c in 0..<3 { request[(c+1)*area+p] = skin[c]*2-1 }
                         request[4*area+p] = 1
                     }
                 }}
-                guidedHeads += 1
+                if assignedPixels > 0 { guidedHeads += 1 }
             }
             if guidedHeads > 0 {
                 (result, shape) = try run(generator!, request, [1, 5, 512, 512])
                 guard shape == [1, 3, 512, 512] else { throw failure("再生成画像の形式が不正です") }
                 // 肌のマスク内だけを穏やかに補正。明暗・線画は呼び出し側で原画から復元する。
                 for p in 0..<area where skinMask[p] > 0 {
-                    let amount = skinMask[p] * 0.45
+                    let amount = skinMask[p] * skinStrength
                     for c in 0..<3 { result[c*area+p] = result[c*area+p] * (1-amount) + skin[c] * amount }
                 }
             }

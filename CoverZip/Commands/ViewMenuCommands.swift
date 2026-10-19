@@ -115,6 +115,8 @@ struct ViewMenuCommands: Commands {
         CommandGroup(after: .toolbar) {
             Toggle("自動着色", isOn: $settings.autoColorizeEnabled)
             Toggle("AI自動着色（プラグイン）", isOn: $settings.aiColorizeEnabled)
+            Button("色合い調整HUD…") { ColorAdjustmentHUD.shared.show() }
+                .keyboardShortcut("e", modifiers: [.command, .option])
             Divider()
             Group {
                 // 読み方向

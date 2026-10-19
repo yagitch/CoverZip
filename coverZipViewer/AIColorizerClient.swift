@@ -29,11 +29,12 @@ final class AIColorizerClient {
         let includeColor = CZSettings.shared.autoColorizeColorImages
         let model = CZSettings.shared.aiColorizeModel
         let strength = CZSettings.shared.mangaColorStrength
+        let skin = CZSettings.shared.mangaSkinRGB + [CZSettings.shared.mangaSkinStrength]
         let operation = DispatchWorkItem { [weak self] in
             // 待機中にページが変わった処理は、モデルを呼ぶ前に除外する。
             let valid = DispatchQueue.main.sync { self?.generations[key] == generation }
             guard valid else { return }
-            let result = autoreleasepool { Self.process(source, includeColor: includeColor, model: model, strength: strength) }
+            let result = autoreleasepool { Self.process(source, includeColor: includeColor, model: model, strength: strength, skin: skin) }
             DispatchQueue.main.async { [weak self] in
                 guard let self, self.generations[key] == generation else { return }
                 self.requests.removeValue(forKey: key)
@@ -45,7 +46,7 @@ final class AIColorizerClient {
         Self.queue.async(execute: operation)
     }
 
-    private static func process(_ source: CGImage, includeColor: Bool, model: String, strength: Double) -> CGImage? {
+    private static func process(_ source: CGImage, includeColor: Bool, model: String, strength: Double, skin: [Double]) -> CGImage? {
         if plugin == nil {
             guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: CZAppGroup.identifier),
                   let bundle = Bundle(url: root.appendingPathComponent("Library/Application Support/CoverZip/PlugIns/AIColorizer.bundle")),
@@ -55,6 +56,8 @@ final class AIColorizerClient {
         guard let plugin else { return nil }
         let modelSelector = NSSelectorFromString("selectModel:")
         if plugin.responds(to: modelSelector) { plugin.perform(modelSelector, with: model as NSString) }
+        let skinSelector = NSSelectorFromString("configureSkin:")
+        if plugin.responds(to: skinSelector) { plugin.perform(skinSelector, with: skin as NSArray) }
         let sizeSelector = NSSelectorFromString("inputSideLength")
         let side = plugin.responds(to: sizeSelector)
             ? (plugin.perform(sizeSelector)?.takeUnretainedValue() as? NSNumber)?.intValue ?? 256 : 256

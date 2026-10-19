@@ -38,7 +38,21 @@ final class AppSettingsWriter: ObservableObject {
         didSet { core.aiColorizeModel = aiColorizeModel; notifyColorizeChange() }
     }
     @Published var mangaColorStrength = 0.55 {
-        didSet { core.mangaColorStrength = mangaColorStrength; notifyColorizeChange() }
+        didSet { core.mangaColorStrength = mangaColorStrength; scheduleColorizeChange() }
+    }
+    @Published var mangaSkinRGB = CZSettings.defaultSkinRGB {
+        didSet { core.mangaSkinRGB = mangaSkinRGB; scheduleColorizeChange() }
+    }
+    @Published var mangaSkinStrength = 0.45 {
+        didSet { core.mangaSkinStrength = mangaSkinStrength; scheduleColorizeChange() }
+    }
+    private var pendingColorChange: DispatchWorkItem?
+    private func scheduleColorizeChange() {
+        guard !isLoadingSettings else { return }
+        pendingColorChange?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.notifyColorizeChange() }
+        pendingColorChange = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: work)
     }
     @Published var autoColorizePalette = CZSettings.defaultColorizePalette {
         didSet { core.autoColorizePalette = autoColorizePalette; notifyColorizeChange() }
@@ -141,6 +155,8 @@ final class AppSettingsWriter: ObservableObject {
         aiColorizeEnabled = core.aiColorizeEnabled
         aiColorizeModel = core.aiColorizeModel
         mangaColorStrength = core.mangaColorStrength
+        mangaSkinRGB = core.mangaSkinRGB
+        mangaSkinStrength = core.mangaSkinStrength
         autoColorizeColorImages = core.autoColorizeColorImages
         autoColorizePalette = core.autoColorizePalette
         imageDecodeCachePolicy = core.imageDecodeCachePolicy

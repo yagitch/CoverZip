@@ -92,6 +92,22 @@ public final class CZSettings {
         }
         set { defaults.set(newValue, forKey: CZSettingsKeys.autoColorizePalette) }
     }
+    public static let defaultSkinRGB: [Double] = [0.96, 0.76, 0.65]
+    public var mangaSkinRGB: [Double] {
+        get {
+            guard let value = defaults.array(forKey: CZSettingsKeys.mangaSkinRGB) as? [Double],
+                  value.count == 3, value.allSatisfy({ $0.isFinite && (0...1).contains($0) }) else { return Self.defaultSkinRGB }
+            return value
+        }
+        set { defaults.set(newValue, forKey: CZSettingsKeys.mangaSkinRGB) }
+    }
+    public var mangaSkinStrength: Double {
+        get {
+            guard let value = defaults.object(forKey: CZSettingsKeys.mangaSkinStrength) as? Double, value.isFinite else { return 0.45 }
+            return min(1, max(0, value))
+        }
+        set { defaults.set(newValue.isFinite ? min(1, max(0, newValue)) : 0.45, forKey: CZSettingsKeys.mangaSkinStrength) }
+    }
     public var isRightToLeftReading: Bool {
         get { defaults.object(forKey: CZSettingsKeys.isRightToLeftReading) as? Bool ?? true }
         set { defaults.set(newValue, forKey: CZSettingsKeys.isRightToLeftReading) }

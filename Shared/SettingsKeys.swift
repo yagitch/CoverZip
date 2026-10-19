@@ -40,6 +40,8 @@ public enum CZSettingsKeys {
     public static let aiColorizeEnabled = "aiColorizeEnabled"
     public static let aiColorizeModel = "aiColorizeModel"
     public static let mangaColorStrength = "mangaColorStrength"
+    public static let mangaSkinRGB = "mangaSkinRGB"
+    public static let mangaSkinStrength = "mangaSkinStrength"
     public static let autoColorizeColorImages = "autoColorizeColorImages"
     public static let autoColorizePalette = "autoColorizePalette"
     // 読書履歴

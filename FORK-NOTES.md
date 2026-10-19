@@ -1,5 +1,16 @@
 # このフォークの変更
 
+ビルド47・AIプラグインv4では独立した「色合い調整HUD」を追加しました。
+「表示 → 色合い調整HUD…」（Command＋Option＋E）または設定画面のボタンで開きます。
+フローティングパネル上のカラーホイール、RGB/HSVスライダー・数値入力で肌の指定色を調整し、
+肌色補正量（既定45%）と画像全体の濃さ（既定55%）を変更できます。操作停止後0.25秒で
+再着色を要求し、モデル処理後に開いている画像へ反映します。値は共通設定に保存します。
+対象は漫画用モデルが判定した顔です。身体全体の肌を選択する機能ではありません。
+前景判定が全域で低い場合、目と肌の分類が成立した顔の中央楕円内に限定して補正します。
+これによりサンプルで肌パーツを検出しても実際の補正画素がゼロだったケースを改善しました。
+肌色補正0%では専用の肌色ヒント・補正を無効にし、通常の漫画着色のみを使います。
+実機でHUD表示、ホイール、HSV数値編集、RGB連動、画像への色反映、初期値復帰を確認済みです。
+
 ビルド46では「設定 → ビューア設定 → AIモデル」で高速／漫画用を即時切替できます。
 プラグインv3へ両モデルを同梱し、設定変更時に表示を再着色します。
 漫画用の「漫画の色の濃さ」は0〜100%、5%刻み、初期値55%。
@@ -142,7 +153,7 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
-導入先は `/Applications/CoverZip.app`、改修版のビルド番号は46です。
+導入先は `/Applications/CoverZip.app`、改修版のビルド番号は47です。
 公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
 署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
 登録し直します。Karabinerの設定変更は不要です。
@@ -152,7 +163,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project CoverZip.xcodeproj -scheme CoverZip -configuration Release \
   -derivedDataPath .build-local build DEVELOPMENT_TEAM=6KCX8JYZB7 \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Development' \
-  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=46
+  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=47
 ```
 
 境界条件のテスト: `python3 tests/check_page_navigation.py`

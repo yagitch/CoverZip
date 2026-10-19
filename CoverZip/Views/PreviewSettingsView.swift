@@ -46,6 +46,7 @@ struct PreviewSettingsView: View {
                     Button("配色をリセット") { settings.autoColorizePalette = CZSettings.defaultColorizePalette }
                 }.disabled(!settings.autoColorizeEnabled)
                 Toggle("AI自動着色（プラグイン）", isOn: $settings.aiColorizeEnabled)
+                Button("色合い調整HUDを開く…") { ColorAdjustmentHUD.shared.show() }
                 Picker("AIモデル", selection: $settings.aiColorizeModel) {
                     Text("高速モデル").tag("fast")
                     Text("漫画用モデル").tag("manga")
