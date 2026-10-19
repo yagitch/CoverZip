@@ -1,14 +1,10 @@
 import AppKit
-import CoreML
 import os.log
 
-/// 漫画用の独立プラグイン。全ページは512角、頭部だけを別モデルで解析する。
+/// 漫画用の独立プラグイン。顔・胴体・背景に同じ色バランスを適用する。
 @objc(CZAIColorizerPlugin)
 public final class MangaColorizerPlugin: NSObject {
     private var generator: UnsafeMutableRawPointer?
-    private var detector: UnsafeMutableRawPointer?
-    private var foreground: UnsafeMutableRawPointer?
-    private var parser: MLModel?
     private let side = 512
     private var skin: [Float] = [0.96, 0.76, 0.65]
     private var skinStrength: Float = 0.45
@@ -24,7 +20,7 @@ public final class MangaColorizerPlugin: NSObject {
     @objc public func inputSideLength() -> NSNumber { usesFastModel ? 256 : 512 }
 
     deinit {
-        for model in [generator, detector, foreground] { if let model { cz_manga_destroy(model) } }
+        for model in [generator] { if let model { cz_manga_destroy(model) } }
     }
 
     private func load() throws {
@@ -35,13 +31,7 @@ public final class MangaColorizerPlugin: NSObject {
             return result
         }
         if generator == nil { generator = try model("generator512") }
-        if detector == nil { detector = try model("head") }
-        if foreground == nil { foreground = try model("foreground-fp16") }
-        if parser == nil {
-            guard let url = bundle.url(forResource: "Parts", withExtension: "mlmodelc") else { throw failure("Partsがありません") }
-            let config = MLModelConfiguration(); config.computeUnits = .cpuAndGPU
-            parser = try MLModel(contentsOf: url, configuration: config)
-        }
+
     }
 
     @objc public func colorizeBGRA(_ input: NSData) -> NSData? {
@@ -56,61 +46,15 @@ public final class MangaColorizerPlugin: NSObject {
             var request = [Float](repeating: 0, count: area * 5)
             for p in 0..<area { request[p] = rgb[p] * 0.299 + rgb[area+p] * 0.587 + rgb[area*2+p] * 0.114 }
             var (result, shape) = try run(generator!, request, [1, 5, 512, 512])
-            guard shape == [1, 3, 512, 512], let base = image(bytes(result), side: side) else { throw failure("生成画像の形式が不正です") }
-            let (heads, headShape) = try run(detector!, tensor(sourceImage, side: 640), [1, 3, 640, 640])
-            let boxes = try headBoxes(heads, shape: headShape)
-            var skinMask = [Float](repeating: 0, count: area)
-            var guidedHeads = 0
-            for box in boxes where skinStrength > 0 {
-                guard let crop = base.cropping(to: box) else { continue }
-                let cropRGB = try tensor(crop, side: 512)
-                let normalized = try MLMultiArray(shape: [1, 3, 512, 512], dataType: .float32)
-                let pointer = normalized.dataPointer.assumingMemoryBound(to: Float.self)
-                let means: [Float] = [0.485, 0.456, 0.406], std: [Float] = [0.229, 0.224, 0.225]
-                for c in 0..<3 { for p in 0..<area { pointer[c*area+p] = (cropRGB[c*area+p] - means[c]) / std[c] } }
-                let prediction = try parser!.prediction(from: MLDictionaryFeatureProvider(dictionary: ["normalized_rgb": normalized]))
-                guard let labels = prediction.featureValue(for: "labels")?.multiArrayValue,
-                      labels.count == area, labels.dataType == .int32 else { throw failure("パーツ出力が不正です") }
-                let parts = labels.dataPointer.assumingMemoryBound(to: Int32.self)
-                var skinCount = 0, eyeCount = 0
-                for p in 0..<area {
-                    if isSkin(parts[p]) { skinCount += 1 }
-                    if parts[p] == 4 || parts[p] == 5 { eyeCount += 1 }
-                }
-                // 顔として不確かな領域や、背景を肌とするような極端なマスクは適用しない。
-                guard skinCount > area / 100, skinCount < area * 3 / 4, eyeCount > 10 else { continue }
-                let (mask, maskShape) = try run(foreground!, tensor(crop, side: 1024), [1, 3, 1024, 1024])
-                guard maskShape == [1, 1, 1024, 1024] else { throw failure("前景出力が不正です") }
-                // 頭部だけの切り出しでは前景モデルが全域を背景とすることがある。
-                // その場合は目と肌の分類が成立した顔の中央だけに限定して補正する。
-                let emptyForeground = (mask.max() ?? 0) < 0.1
-                var assignedPixels = 0
-                for y in Int(box.minY)..<Int(box.maxY) { for x in Int(box.minX)..<Int(box.maxX) {
-                    let cx = min(511, Int(Double(x - Int(box.minX)) * 512 / box.width))
-                    let cy = min(511, Int(Double(y - Int(box.minY)) * 512 / box.height))
-                    let p = y * side + x
-                    let dx = (Float(cx) - 255.5) / 230, dy = (Float(cy) - 255.5) / 230
-                    let alpha = emptyForeground ? (dx*dx + dy*dy < 1 ? Float(1) : 0) : mask[(cy*2)*1024+cx*2]
-                    guard isSkin(parts[cy*512+cx]), alpha > 0.7, request[p] > 0.22 else { continue }
-                    skinMask[p] = max(skinMask[p], min(1, (alpha - 0.7) / 0.3))
-                    assignedPixels += 1
-                    if x % 8 == 0 && y % 8 == 0 {
-                        for c in 0..<3 { request[(c+1)*area+p] = skin[c]*2-1 }
-                        request[4*area+p] = 1
-                    }
-                }}
-                if assignedPixels > 0 { guidedHeads += 1 }
+            guard shape == [1, 3, 512, 512] else { throw failure("生成画像の形式が不正です") }
+            // 既定の基準色が中立。各RGBの比率で全画素を同じように補正する。
+            // 顔・胴体・手足・背景を区別せず、黒い線は持ち上げない。
+            let neutral: [Float] = [0.96, 0.76, 0.65]
+            for c in 0..<3 {
+                let gain = 1 + (skin[c] / neutral[c] - 1) * skinStrength
+                for p in 0..<area { result[c*area+p] *= gain }
             }
-            if guidedHeads > 0 {
-                (result, shape) = try run(generator!, request, [1, 5, 512, 512])
-                guard shape == [1, 3, 512, 512] else { throw failure("再生成画像の形式が不正です") }
-                // 肌のマスク内だけを穏やかに補正。明暗・線画は呼び出し側で原画から復元する。
-                for p in 0..<area where skinMask[p] > 0 {
-                    let amount = skinMask[p] * skinStrength
-                    for c in 0..<3 { result[c*area+p] = result[c*area+p] * (1-amount) + skin[c] * amount }
-                }
-            }
-            NSLog("[Manga] heads=%d guided=%d seconds=%.3f", boxes.count, guidedHeads, Date().timeIntervalSince(start))
+            NSLog("[Manga] 全体色補正 seconds=%.3f", Date().timeIntervalSince(start))
             return bytes(result) as NSData
         } catch {
             os_log("[Manga] 着色失敗: %{public}@", type: .error, error.localizedDescription)
@@ -118,7 +62,6 @@ public final class MangaColorizerPlugin: NSObject {
         }
     }
 
-    private func isSkin(_ label: Int32) -> Bool { label == 1 || label == 7 || label == 8 || label == 10 }
     private func failure(_ message: String) -> NSError { NSError(domain: "CoverZipManga", code: 1, userInfo: [NSLocalizedDescriptionKey: message]) }
 
     private func run(_ model: UnsafeMutableRawPointer, _ input: [Float], _ shape: [Int64]) throws -> ([Float], [Int64]) {
@@ -165,27 +108,4 @@ public final class MangaColorizerPlugin: NSObject {
         return result
     }
 
-    private func headBoxes(_ output: [Float], shape: [Int64]) throws -> [CGRect] {
-        guard shape.count == 3, shape[0] == 1, shape[1] == 5 else { throw failure("頭部検出の形式が未対応: \(shape)") }
-        let count = Int(shape[2])
-        var candidates: [(CGRect, Float)] = []
-        for i in 0..<count where output[4*count+i] > 0.4 {
-            let cx = CGFloat(output[i])*0.8, cy = CGFloat(output[count+i])*0.8
-            let w = CGFloat(output[2*count+i])*0.8, h = CGFloat(output[3*count+i])*0.8
-            guard cx.isFinite, cy.isFinite, w.isFinite, h.isFinite, w >= 12, h >= 12 else { continue }
-            let rect = CGRect(x: cx-w/2, y: cy-h/2, width: w, height: h).integral.intersection(CGRect(x: 0, y: 0, width: 512, height: 512))
-            if !rect.isNull && rect.width >= 12 && rect.height >= 12 { candidates.append((rect, output[4*count+i])) }
-        }
-        var result: [CGRect] = []
-        for (rect, _) in candidates.sorted(by: { $0.1 > $1.1 }) {
-            if result.contains(where: { existing in
-                let intersection = rect.intersection(existing)
-                let area = intersection.isNull ? 0 : intersection.width*intersection.height
-                return area / (rect.width*rect.height + existing.width*existing.height - area) > 0.7
-            }) { continue }
-            result.append(rect)
-            if result.count == 6 { break }
-        }
-        return result
-    }
 }

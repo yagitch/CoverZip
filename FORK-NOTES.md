@@ -1,5 +1,12 @@
 # このフォークの変更
 
+ビルド48・AIプラグインv5では、利用者の指定により顔限定の補正を廃止し、画像全体への
+一律の色バランス補正に変更しました。漫画用generatorの出力に、基準RGBの既定値に対する
+比率を「色合い補正」の強さで混ぜた係数を適用します。顔・胴体・手足・服・背景は同じ扱いです。
+既定の基準色が中立で、補正0%でも色バランス変更は無効です。HUDのRGB/HSV操作と保存は維持します。
+頭部検出・パーツ分類・前景分離はロードも実行もしません。旧モデルの取得物は切り戻し用に保持します。
+16区画すべてへの補正、0%での出力復帰、高速モデルとの切替、実機のHUDから全体への反映を確認済み。
+
 ビルド47・AIプラグインv4では独立した「色合い調整HUD」を追加しました。
 「表示 → 色合い調整HUD…」（Command＋Option＋E）または設定画面のボタンで開きます。
 フローティングパネル上のカラーホイール、RGB/HSVスライダー・数値入力で肌の指定色を調整し、
@@ -153,7 +160,7 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
-導入先は `/Applications/CoverZip.app`、改修版のビルド番号は47です。
+導入先は `/Applications/CoverZip.app`、改修版のビルド番号は48です。
 公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
 署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
 登録し直します。Karabinerの設定変更は不要です。
@@ -163,7 +170,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project CoverZip.xcodeproj -scheme CoverZip -configuration Release \
   -derivedDataPath .build-local build DEVELOPMENT_TEAM=6KCX8JYZB7 \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Development' \
-  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=47
+  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=48
 ```
 
 境界条件のテスト: `python3 tests/check_page_navigation.py`

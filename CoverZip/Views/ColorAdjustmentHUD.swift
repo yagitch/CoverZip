@@ -48,11 +48,11 @@ private struct ColorAdjustmentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("肌色を調整").font(.headline)
+                Text("画像全体の色合い").font(.headline)
                 Spacer()
                 RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: color)).frame(width: 64, height: 28)
                     .overlay(RoundedRectangle(cornerRadius: 6).stroke(.secondary, lineWidth: 1))
-                    .accessibilityLabel("選択した肌色")
+                    .accessibilityLabel("色バランスの基準色")
             }
             Toggle("AI自動着色", isOn: $settings.aiColorizeEnabled)
             Picker("AIモデル", selection: $settings.aiColorizeModel) {
@@ -81,7 +81,7 @@ private struct ColorAdjustmentView: View {
                         if angle < 0 { angle += 1 }
                         setHSV(h: angle, s: min(1, hypot(x, y) / center))
                     })
-                    .accessibilityLabel("肌色カラーホイール。数値調整は下のHSVまたはRGBを使用")
+                    .accessibilityLabel("全体の色合いカラーホイール。数値調整は下のHSVまたはRGBを使用")
                 }.frame(width: 160, height: 160)
                 Picker("色の指定方法", selection: $colorSpace) {
                     Text("HSV").tag("HSV")
@@ -98,11 +98,11 @@ private struct ColorAdjustmentView: View {
                             set: { settings.mangaSkinRGB[index] = $0 / 255 }), range: 0...255)
                     }
                 }
-                channel("肌色補正", value: Binding(get: { settings.mangaSkinStrength * 100 }, set: { settings.mangaSkinStrength = $0 / 100 }), range: 0...100)
+                channel("色合い補正", value: Binding(get: { settings.mangaSkinStrength * 100 }, set: { settings.mangaSkinStrength = $0 / 100 }), range: 0...100)
                 channel("全体の濃さ", value: Binding(get: { settings.mangaColorStrength * 100 }, set: { settings.mangaColorStrength = $0 / 100 }), range: 0...100)
             }.disabled(!enabled)
 
-            Text(enabled ? "肌色は検出できた顔への指定色と補正です。身体全体の肌を選択する機能ではありません。全体の濃さは画像全体に効きます。操作を止めると再着色します。" : "肌色調整を使うにはAI自動着色をオンにし、漫画用モデルを選択してください。")
+            Text(enabled ? "RGB・HSVは顔、胴体、手足、服や背景まで一律に適用します。初期の基準色が中立です。色合い補正0%で色バランスの変更を無効にできます。操作を止めると再着色します。" : "色合い調整を使うにはAI自動着色をオンにし、漫画用モデルを選択してください。")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Button("調整を初期値に戻す") {
                 settings.mangaSkinRGB = CZSettings.defaultSkinRGB

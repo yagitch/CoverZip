@@ -29,7 +29,19 @@ import AppKit
         plugin.perform(skinSelector, with: [0.4, 0.6, 0.95, 0.8] as NSArray)
         let changed = plugin.perform(selector, with: input as NSData)?.takeUnretainedValue() as? Data
         precondition(changed != nil && changed != baseline, "肌色パラメータが反映されていません")
-        print("肌色RGB・補正量の出力変化を確認")
+        // 顔のある範囲だけでなく、ページの各区画へ補正が届くことを確認する。
+        for tileY in 0..<4 { for tileX in 0..<4 {
+            var changedPixels = 0
+            for y in tileY*128..<(tileY+1)*128 { for x in tileX*128..<(tileX+1)*128 {
+                let p = (y*512+x)*4
+                if (0..<3).contains(where: { abs(Int(changed![p+$0])-Int(baseline![p+$0])) > 3 }) { changedPixels += 1 }
+            }}
+            precondition(changedPixels > 1000, "補正がページの一部に限定されています")
+        }}
+        plugin.perform(skinSelector, with: [0.4, 0.6, 0.95, 0] as NSArray)
+        let disabled = plugin.perform(selector, with: input as NSData)?.takeUnretainedValue() as? Data
+        precondition(disabled == baseline, "補正0%で元の出力に戻りません")
+        print("全16区画へのRGB補正と0%での無効化を確認")
         let selection = NSSelectorFromString("selectModel:")
         plugin.perform(selection, with: "fast" as NSString)
         precondition((plugin.perform(NSSelectorFromString("inputSideLength"))?.takeUnretainedValue() as! NSNumber).intValue == 256)
