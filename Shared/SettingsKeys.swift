@@ -66,7 +66,7 @@ public enum CZSettingsKeys {
 
 public enum CZAppGroup {
     /// App / Extensions の Entitlements に設定された App Group と一致させること
-    public static let identifier: String = "group.com.dmng.CoverZip"
+    public static let identifier: String = "6KCX8JYZB7.com.yagitch.CoverZip"
 }
 
 public enum CZPreviewSessionCommand: String {

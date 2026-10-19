@@ -23,6 +23,7 @@
   - 主要ファイル: `Shared/ZipCore.swift`、`Shared/NaturalSort.swift`、`Shared/ImageFileFilter.swift`、`Shared/SettingsKeys.swift`。
 
 ## 共有設定と App Group
+- このフォークでは利用者の合意に基づき、以下の上流識別子を `6KCX8JYZB7.com.yagitch.CoverZip` に置換している。署名・移行の詳細は `FORK-NOTES.md` を参照。
 - App Group は `Shared/SettingsKeys.swift` の `CZAppGroup.identifier` に定義: `group.com.dmng.CoverZip`。
 - 設定キーは `Shared/SettingsKeys.swift` に集約。アプリ・拡張とも同キー/同グループを利用。
 - 設定 UI/保存: アプリ側は `CoverZip/Views/*` + `CoverZip/Services/AppSettings.swift`。拡張側は `coverZipViewer/Settings.swift`。
