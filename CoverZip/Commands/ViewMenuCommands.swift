@@ -109,9 +109,12 @@ final class ViewMenuState: ObservableObject {
 
 struct ViewMenuCommands: Commands {
     @ObservedObject private var state = ViewMenuState.shared
+    @ObservedObject private var settings = AppSettingsWriter.shared
 
     var body: some Commands {
         CommandGroup(after: .toolbar) {
+            Toggle("自動着色", isOn: $settings.autoColorizeEnabled)
+            Divider()
             Group {
                 // 読み方向
                 Toggle(isOn: Binding(

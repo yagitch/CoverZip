@@ -21,6 +21,8 @@ FinderのEnterは、外部のKarabiner設定でCommand＋O（関連付けアプ�
 白黒の明暗を4色へ割り当て、黒・白・透明度を保持します。カラー画像は通常除外し、
 「カラー画像も着色する」で対象に含めます。4色の変更と配色のリセットに対応します。
 設定はファイル共通で保存し、表示中のページにも反映します。初期値はオフです。
+ビルド41から、本体のメニューバー「表示 → 自動着色」でも切り替えられます。
+設定画面と同じ状態を参照し、チェック表示・保存・画像への即時反映が連動します。
 
 EdgeView2のHUDの配色と、独自の白黒階調テスト画像への表示結果を参考に実装しました。
 内部計算式を複製したものではなく、完全なピクセル一致は保証しません。
@@ -113,7 +115,7 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
-導入先は `/Applications/CoverZip.app`、改修版のビルド番号は40です。
+導入先は `/Applications/CoverZip.app`、改修版のビルド番号は41です。
 公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
 署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
 登録し直します。Karabinerの設定変更は不要です。
@@ -123,7 +125,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project CoverZip.xcodeproj -scheme CoverZip -configuration Release \
   -derivedDataPath .build-local build DEVELOPMENT_TEAM=6KCX8JYZB7 \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Development' \
-  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=40
+  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=41
 ```
 
 境界条件のテスト: `python3 tests/check_page_navigation.py`
