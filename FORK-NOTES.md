@@ -15,6 +15,10 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
+導入先は `/Applications/CoverZip.app`、改修版のビルド番号は30です。
+公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
+署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
+登録し直します。Karabinerの設定変更は不要です。
 
 ```sh
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
