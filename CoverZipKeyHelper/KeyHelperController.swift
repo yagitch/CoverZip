@@ -25,6 +25,8 @@ final class KeyHelperController: NSObject {
     private var windowSizeTimer: Timer?
     private var sizedQuickLookWindow: AXUIElement?
     private var lastQuickLookSize: CGSize?
+    private var lastQuickLookPosition: CGPoint?
+    private var needsQuickLookFrameRestore = false
     private var windowSizeSettlesAt = Date.distantPast
 
     override init() {
@@ -76,26 +78,45 @@ final class KeyHelperController: NSObject {
         var size = CGSize.zero
         guard AXValueGetValue(unsafeBitCast(value, to: AXValue.self), .cgSize, &size),
               size.width > 100, size.height > 100 else { return }
+        guard let positionValue = copyAttributeValue(of: window, attribute: kAXPositionAttribute as CFString),
+              CFGetTypeID(positionValue) == AXValueGetTypeID() else { return }
+        var position = CGPoint.zero
+        guard AXValueGetValue(unsafeBitCast(positionValue, to: AXValue.self), .cgPoint, &position) else { return }
         if sizedQuickLookWindow == nil || !CFEqual(sizedQuickLookWindow!, window) {
             sizedQuickLookWindow = window
             lastQuickLookSize = nil
+            lastQuickLookPosition = nil
+            needsQuickLookFrameRestore = true
             windowSizeSettlesAt = Date().addingTimeInterval(0.75)
-            if let saved = CZUserDefaults.shared.string(forKey: CZSettingsKeys.savedWindowFrameString) {
-                var target = NSRectFromString(saved).size
-                if target.width > 100, target.height > 100,
-                   let axSize = AXValueCreate(.cgSize, &target) {
-                    _ = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, axSize)
-                }
-            }
             return
         }
         guard Date() >= windowSizeSettlesAt else { return }
-        if lastQuickLookSize != size {
-            var frame = CZUserDefaults.shared.string(forKey: CZSettingsKeys.savedWindowFrameString).map(NSRectFromString) ?? .zero
-            frame.size = size
-            CZUserDefaults.shared.set(NSStringFromRect(frame), forKey: CZSettingsKeys.savedWindowFrameString)
-            lastQuickLookSize = size
+        if needsQuickLookFrameRestore {
+            needsQuickLookFrameRestore = false
+            if let saved = CZUserDefaults.shared.string(forKey: CZSettingsKeys.savedWindowFrameString) {
+                let frame = NSRectFromString(saved)
+                var target = frame.size
+                // AppKitは左下原点、AXはメイン画面の左上原点。
+                var origin = CGPoint(x: frame.minX, y: (NSScreen.screens.first?.frame.maxY ?? 0) - frame.maxY)
+                if target.width > 100, target.height > 100,
+                   let axSize = AXValueCreate(.cgSize, &target),
+                   let axPosition = AXValueCreate(.cgPoint, &origin) {
+                    _ = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, axPosition)
+                    _ = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, axSize)
+                    _ = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, axPosition)
+                }
+            }
+            windowSizeSettlesAt = Date().addingTimeInterval(0.75)
+            return
         }
+        // 開く際のOSの位置補正・縮小は保存しない。安定後のユーザー変更だけを保存する。
+        if lastQuickLookSize != nil, lastQuickLookSize != size || lastQuickLookPosition != position {
+            let frame = NSRect(x: position.x, y: (NSScreen.screens.first?.frame.maxY ?? 0) - position.y - size.height,
+                               width: size.width, height: size.height)
+            CZUserDefaults.shared.set(NSStringFromRect(frame), forKey: CZSettingsKeys.savedWindowFrameString)
+        }
+        lastQuickLookSize = size
+        lastQuickLookPosition = position
     }
 
     private func setupDistributedNotificationObservers() {

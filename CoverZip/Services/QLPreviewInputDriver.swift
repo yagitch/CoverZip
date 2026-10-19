@@ -135,9 +135,10 @@ enum QLPreviewInputDriver {
                 initialFrame = NSRect(origin: .zero, size: initialSize)
             }
 
+            let mask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable]
             let window = NSWindow(
-                contentRect: initialFrame,
-                styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                contentRect: NSWindow.contentRect(forFrameRect: initialFrame, styleMask: mask),
+                styleMask: mask,
                 backing: .buffered,
                 defer: false
             )

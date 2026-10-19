@@ -29,6 +29,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     private var isHandlingPassThroughControlInteraction = false
     private var pendingSingleClick: DispatchWorkItem?
     private var currentImageAspect: CGFloat?
+    private var didSetInitialPreferredSize = false
     private var lastKnownSinglePageAspect: CGFloat?
     private var lastKnownLeftPageAspect: CGFloat?
     private var lastKnownRightPageAspect: CGFloat?
@@ -2499,12 +2500,12 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     // QLPreviewView / システムのQuick Lookパネルいずれも）はリモートコンテンツをそのヒント
     // サイズで中央配置し、余白を自前で描画する。この余白はホスト側の領域であり拡張からは
     // 一切操作できない（マウスカーソル変更・クリックページ送りが背景で反応しない原因）。
-    // 表示後はホストの割り当てサイズを報告し、余白と縮小できない状態を避ける。
+    // 本文サイズを希望サイズに書き戻すとホストの装飾分だけ縮むため、初回だけ提示する。
     private func updatePreferredContentSizeIfNeeded() {
-        // レイアウト中にサイズの最大値を取り続けると縮小できなくなる。
-        // 初期値だけ希望し、表示後はホストが与えた本文サイズに追従する。
-        let size = view.window == nil ? idealPreferredContentSize() : view.bounds.size
+        guard !didSetInitialPreferredSize else { return }
+        let size = idealPreferredContentSize()
         guard size.width > 0, size.height > 0 else { return }
+        didSetInitialPreferredSize = true
         if preferredContentSize != size { preferredContentSize = size }
     }
 
