@@ -2610,10 +2610,16 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         let currentPage = imageManager.getCurrentPageNumber()
         let totalPages = imageManager.getImageCount()
         pageLabel?.stringValue = "\(currentPage) / \(totalPages)"
+        var displayedPages = String(currentPage)
+        if currentViewMode == .spread {
+            let pair = imageManager.getCurrentSpreadPairIndices(isRightToLeft: isRightToLeftReading)
+            displayedPages = [pair.left, pair.right].compactMap { $0.map { String($0 + 1) } }.joined(separator: "|")
+        }
         guard let path = pageStatusFilePath,
               let data = try? JSONSerialization.data(withJSONObject: [
                 "path": path, "session": previewVisibilitySessionID,
-                "current": currentPage, "total": totalPages, "rtl": isRightToLeftReading
+                "current": currentPage, "total": totalPages, "rtl": isRightToLeftReading,
+                "pages": displayedPages
               ]), let payload = String(data: data, encoding: .utf8) else { return }
         // サンドボックス内からはuserInfoを使わず、文字列のobjectで状態を渡す。
         DistributedNotificationCenter.default().postNotificationName(

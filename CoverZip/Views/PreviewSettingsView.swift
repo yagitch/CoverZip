@@ -29,7 +29,7 @@ struct PreviewSettingsView: View {
             Section {
                 Toggle("本体のページ位置バーとタイトルのページ番号を表示", isOn: $settings.showViewerPageStatus)
             } footer: {
-                Text("ウインドウ下端のバーと、タイトルの「現在ページ : 総ページ数」をまとめて切り替えます。")
+                Text("下端に重ねる半透明バーとタイトルのページ番号をまとめて切り替えます。バーは操作・マウス移動で表示され、1秒後に消えます。")
             }
             Section {
                 Toggle("先頭と最終ページをループする", isOn: $settings.pageLoopEnabled)

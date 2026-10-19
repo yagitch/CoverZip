@@ -184,16 +184,15 @@ enum QLPreviewInputDriver {
             let bar = pageIndicator.bar
             content.addSubview(bar)
             bar.translatesAutoresizingMaskIntoConstraints = false
-            let barHeight = bar.heightAnchor.constraint(equalToConstant: 6)
-            pageIndicator.heightConstraint = barHeight
+            let barHeight = bar.heightAnchor.constraint(equalToConstant: 10)
             NSLayoutConstraint.activate([
                 previewView.leadingAnchor.constraint(equalTo: content.leadingAnchor),
                 previewView.trailingAnchor.constraint(equalTo: content.trailingAnchor),
                 previewView.topAnchor.constraint(equalTo: content.topAnchor),
-                previewView.bottomAnchor.constraint(equalTo: bar.topAnchor),
-                bar.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-                bar.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-                bar.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+                previewView.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+                bar.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 8),
+                bar.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -8),
+                bar.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -2),
                 barHeight,
             ])
             pageIndicator.refresh()
@@ -310,7 +309,9 @@ enum QLPreviewInputDriver {
         weak var window: NSWindow?
         let url: URL
         let bar = ViewerProgressBar()
-        var heightConstraint: NSLayoutConstraint?
+        private var hideWork: DispatchWorkItem?
+        private var activityMonitor: Any?
+        private var pageText = ""
         var sessionID: String?
         var current = 0
         var total = 0
@@ -320,6 +321,11 @@ enum QLPreviewInputDriver {
         init(window: NSWindow, url: URL) {
             self.window = window
             self.url = url
+            window.acceptsMouseMovedEvents = true
+            activityMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDown, .rightMouseDown, .leftMouseDragged, .scrollWheel, .keyDown]) { [weak self] event in
+                if let self, event.window === self.window { self.showTemporarily() }
+                return event
+            }
             pageObserver = DistributedNotificationCenter.default.addObserver(
                 forName: CZDistributedNotifications.previewPageStatus, object: nil, queue: .main
             ) { [weak self] note in
@@ -339,6 +345,7 @@ enum QLPreviewInputDriver {
                 }
                 self.current = total > 0 ? current : 0
                 self.total = total
+                self.pageText = info["pages"] as? String ?? String(current)
                 self.bar.isRightToLeft = info["rtl"] as? Bool ?? true
                 self.refresh()
             }
@@ -348,6 +355,8 @@ enum QLPreviewInputDriver {
         }
 
         deinit {
+            hideWork?.cancel()
+            if let activityMonitor { NSEvent.removeMonitor(activityMonitor) }
             if let pageObserver { DistributedNotificationCenter.default.removeObserver(pageObserver) }
             if let settingsObserver { NotificationCenter.default.removeObserver(settingsObserver) }
         }
@@ -355,12 +364,23 @@ enum QLPreviewInputDriver {
         func refresh() {
             let enabled = CZSettings.shared.showViewerPageStatus
             window?.title = enabled && total > 0
-                ? "\(url.lastPathComponent) (\(current) : \(total))" : url.lastPathComponent
-            bar.isHidden = !enabled
-            heightConstraint?.constant = enabled ? 6 : 0
+                ? "\(url.lastPathComponent) (\(pageText) : \(total))" : url.lastPathComponent
             bar.fraction = total > 0 ? Double(current) / Double(total) : 0
             bar.setAccessibilityLabel("ページ位置")
             bar.setAccessibilityValue("\(current) / \(total)")
+            showTemporarily()
+        }
+
+        private func showTemporarily() {
+            hideWork?.cancel()
+            guard CZSettings.shared.showViewerPageStatus, total > 0 else {
+                bar.isHidden = true
+                return
+            }
+            bar.isHidden = false
+            let work = DispatchWorkItem { [weak self] in self?.bar.isHidden = true }
+            hideWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
         }
     }
 
@@ -376,12 +396,18 @@ enum QLPreviewInputDriver {
         required init?(coder: NSCoder) { nil }
         override func hitTest(_ point: NSPoint) -> NSView? { nil }
         override func draw(_ dirtyRect: NSRect) {
-            NSColor.separatorColor.setFill()
-            bounds.fill()
+            let outline = NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: 5, yRadius: 5)
+            NSColor.black.withAlphaComponent(0.3).setFill()
+            outline.fill()
+            NSGraphicsContext.saveGraphicsState()
+            outline.addClip()
             let width = bounds.width * min(max(fraction, 0), 1)
-            NSColor.controlAccentColor.setFill()
+            NSColor.white.withAlphaComponent(0.5).setFill()
             NSRect(x: isRightToLeft ? bounds.maxX - width : bounds.minX,
                    y: bounds.minY, width: width, height: bounds.height).fill()
+            NSGraphicsContext.restoreGraphicsState()
+            NSColor.white.withAlphaComponent(0.7).setStroke()
+            outline.stroke()
         }
     }
 

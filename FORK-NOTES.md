@@ -14,13 +14,20 @@ FinderのEnterは、外部のKarabiner設定でCommand＋O（関連付けアプ�
 割り当てています。SpaceはQuick Look、F2は名前変更です。文字入力中はEnter変換を除外します。
 導入したルールは `integrations/karabiner-finder-open.json` に記録しています。
 
-## 本体のページ位置表示（ビルド37）
+## 本体のページ位置表示（ビルド37・38）
 
 EdgeView2の表示を参考に、本体のタイトルへ `ファイル名 (現在ページ : 総ページ数)`、
 ウインドウ下端へ細い進捗バーを追加しました。バーは綴じ方向に合わせて伸びます。
 「設定 → ビューア設定 → 本体のページ位置バーとタイトルのページ番号を表示」で
 両方をまとめて切り替えます。既定はオンで、開いているウインドウにも即時反映します。
 Finder Quick Lookの外観、既存のキーバインドは変えません。
+
+ビルド38では見開きの左右のページ番号を `3|2 : 21` の形式で表示します。
+単ページは従来の `1 : 21` です。実際の表示ペアと綴じ方向に追従します。
+バーは白・グレーの半透明の角丸表示で、画像下端に重ね、画像領域を狭めません。
+キー、クリック、スクロール、ウインドウ内のマウス移動で再表示し、最後の操作から
+1秒後に非表示にします。タイトルの数字は表示を維持します。
+実機で見開きの `3|2 : 3`、単ページの `1 : 3`、操作時の再表示と自動非表示を確認しました。
 
 ページ状態はプレビュー拡張から本体へ、ファイルパスとセッションID付きの分散通知で送ります。
 サンドボックス制約に合わせて通知のuserInfoを使わず、objectのJSON文字列に格納します。
@@ -81,7 +88,7 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
-導入先は `/Applications/CoverZip.app`、改修版のビルド番号は37です。
+導入先は `/Applications/CoverZip.app`、改修版のビルド番号は38です。
 公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
 署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
 登録し直します。Karabinerの設定変更は不要です。
@@ -91,7 +98,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project CoverZip.xcodeproj -scheme CoverZip -configuration Release \
   -derivedDataPath .build-local build DEVELOPMENT_TEAM=6KCX8JYZB7 \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Development' \
-  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=37
+  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=38
 ```
 
 境界条件のテスト: `python3 tests/check_page_navigation.py`
