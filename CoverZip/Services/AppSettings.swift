@@ -15,6 +15,19 @@ final class AppSettingsWriter: ObservableObject {
 
     private let core = CZSettings.shared
     private var isLoadingSettings = false
+    @Published var autoColorizeEnabled = false {
+        didSet { core.autoColorizeEnabled = autoColorizeEnabled; notifyColorizeChange() }
+    }
+    @Published var autoColorizeColorImages = false {
+        didSet { core.autoColorizeColorImages = autoColorizeColorImages; notifyColorizeChange() }
+    }
+    @Published var autoColorizePalette = CZSettings.defaultColorizePalette {
+        didSet { core.autoColorizePalette = autoColorizePalette; notifyColorizeChange() }
+    }
+    private func notifyColorizeChange() {
+        guard !isLoadingSettings else { return }
+        DistributedNotificationCenter.default().postNotificationName(CZDistributedNotifications.settingsChanged, object: nil, userInfo: nil, deliverImmediately: true)
+    }
 
     @Published var isRightToLeftReading: Bool = true {
         didSet {
@@ -105,6 +118,9 @@ final class AppSettingsWriter: ObservableObject {
         pageLoopEnabled = core.pageLoopEnabled
         showViewerPageStatus = core.showViewerPageStatus
         viewerPageStatusHideDelay = core.viewerPageStatusHideDelay
+        autoColorizeEnabled = core.autoColorizeEnabled
+        autoColorizeColorImages = core.autoColorizeColorImages
+        autoColorizePalette = core.autoColorizePalette
         imageDecodeCachePolicy = core.imageDecodeCachePolicy
         pageTransitionEnabled = core.pageTransitionEnabled
         defaultViewMode = core.defaultViewMode

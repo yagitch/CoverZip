@@ -26,6 +26,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     private var readingHistoryManager = ReadingHistoryManager.shared
     private var currentZipFilename: String = ""
     private var pageStatusFilePath: String?
+    private let autoColorizer = AutoColorizer()
     private var mouseMonitors: [Any] = []
     private var isHandlingPassThroughControlInteraction = false
     private var pendingSingleClick: DispatchWorkItem?
@@ -2081,7 +2082,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         
         imageView?.imageScaling = .scaleProportionallyUpOrDown
         imageView?.imageAlignment = .alignCenter
-        imageView?.image = image
+        imageView?.image = autoColorizer.image(image)
         pageLabel?.stringValue = ""
     // スライダーを無効化
     pageSlider?.minValue = 1
@@ -2226,7 +2227,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         guard let iv = imageView else { return }
         // スケーリングのみ固定。アラインメントはモード切替で設定したものを維持する
         iv.imageScaling = .scaleProportionallyUpOrDown
-        iv.image = image
+        iv.image = autoColorizer.image(image)
     }
 
     @discardableResult
@@ -2256,7 +2257,8 @@ class PreviewViewController: NSViewController, QLPreviewingController {
 
         let displayLayer = CALayer()
         displayLayer.name = "cz_prerendered"
-        displayLayer.contents = prerenderedContents
+        // ImageManagerが生成する事前描画レイヤーのcontentsはCGImage。
+        displayLayer.contents = autoColorizer.apply(prerenderedContents as! CGImage)
         displayLayer.contentsGravity = .resizeAspect
         displayLayer.contentsScale = max(hostLayer.contentsScale, view.window?.backingScaleFactor ?? 1.0)
         displayLayer.minificationFilter = .trilinear

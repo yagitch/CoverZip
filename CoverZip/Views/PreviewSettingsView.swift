@@ -26,6 +26,28 @@ struct PreviewSettingsView: View {
 
     var body: some View {
         Form {
+            Section("エフェクト") {
+                Toggle("自動着色", isOn: $settings.autoColorizeEnabled)
+                Toggle("カラー画像も着色する", isOn: $settings.autoColorizeColorImages)
+                    .disabled(!settings.autoColorizeEnabled)
+                HStack {
+                    ForEach(0..<4) { index in
+                        ColorPicker("色\(index + 1)", selection: Binding(
+                            get: {
+                                let rgb = settings.autoColorizePalette[index]
+                                return Color(.sRGB, red: rgb[0], green: rgb[1], blue: rgb[2], opacity: 1)
+                            },
+                            set: { value in
+                                guard let rgb = NSColor(value).usingColorSpace(.sRGB) else { return }
+                                settings.autoColorizePalette[index] = [rgb.redComponent, rgb.greenComponent, rgb.blueComponent]
+                            }
+                        ), supportsOpacity: false)
+                    }
+                    Button("配色をリセット") { settings.autoColorizePalette = CZSettings.defaultColorizePalette }
+                }.disabled(!settings.autoColorizeEnabled)
+                Text("白黒画像の階調に色を付けます。本体とQuick Lookに適用し、元の画像は変更しません。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Section {
                 Toggle("本体のページ位置バーとタイトルのページ番号を表示", isOn: $settings.showViewerPageStatus)
                 HStack {

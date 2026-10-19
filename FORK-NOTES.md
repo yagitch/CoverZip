@@ -14,6 +14,28 @@ FinderのEnterは、外部のKarabiner設定でCommand＋O（関連付けアプ�
 割り当てています。SpaceはQuick Look、F2は名前変更です。文字入力中はEnter変換を除外します。
 導入したルールは `integrations/karabiner-finder-open.json` に記録しています。
 
+## 自動着色（ビルド40）
+
+「設定 → ビューア設定 → エフェクト」で自動着色を切り替えます。
+本体とFinder Quick Lookのページ画像に適用し、原本やFinderのサムネイルは変更しません。
+白黒の明暗を4色へ割り当て、黒・白・透明度を保持します。カラー画像は通常除外し、
+「カラー画像も着色する」で対象に含めます。4色の変更と配色のリセットに対応します。
+設定はファイル共通で保存し、表示中のページにも反映します。初期値はオフです。
+
+EdgeView2のHUDの配色と、独自の白黒階調テスト画像への表示結果を参考に実装しました。
+内部計算式を複製したものではなく、完全なピクセル一致は保証しません。
+画像の意味を推測するAI着色ではなく、階調に基づく配色です。
+着色結果は64MiBを目安とするキャッシュに保持します。
+
+検証: 本体・Quick Lookで白黒階調画像の着色を確認。
+`tests/check_auto_colorize.swift` は実装を使い、無効時、黒白・透明度保持、カラー除外、
+強制適用、配色変更を検査します。assertを有効にするため最適化なしで実行します。
+
+```sh
+xcrun swiftc coverZipViewer/AutoColorizer.swift tests/check_auto_colorize.swift -o .local-backup/check-auto-colorize
+.local-backup/check-auto-colorize
+```
+
 ## 本体のページ位置表示（ビルド37・38）
 
 EdgeView2の表示を参考に、本体のタイトルへ `ファイル名 (現在ページ : 総ページ数)`、
@@ -91,7 +113,7 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
-導入先は `/Applications/CoverZip.app`、改修版のビルド番号は39です。
+導入先は `/Applications/CoverZip.app`、改修版のビルド番号は40です。
 公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
 署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
 登録し直します。Karabinerの設定変更は不要です。
@@ -101,7 +123,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project CoverZip.xcodeproj -scheme CoverZip -configuration Release \
   -derivedDataPath .build-local build DEVELOPMENT_TEAM=6KCX8JYZB7 \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Development' \
-  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=39
+  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=40
 ```
 
 境界条件のテスト: `python3 tests/check_page_navigation.py`

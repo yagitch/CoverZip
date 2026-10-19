@@ -50,6 +50,23 @@ public final class CZSettings {
     }
 
     // MARK: - 読み方向
+    public static let defaultColorizePalette = [[0.098, 0.238, 0.418], [0.695, 0.258, 0.434], [0.883, 0.5, 0.449], [0.965, 0.781, 0.609]]
+    public var autoColorizeEnabled: Bool {
+        get { defaults.bool(forKey: CZSettingsKeys.autoColorizeEnabled) }
+        set { defaults.set(newValue, forKey: CZSettingsKeys.autoColorizeEnabled) }
+    }
+    public var autoColorizeColorImages: Bool {
+        get { defaults.bool(forKey: CZSettingsKeys.autoColorizeColorImages) }
+        set { defaults.set(newValue, forKey: CZSettingsKeys.autoColorizeColorImages) }
+    }
+    public var autoColorizePalette: [[Double]] {
+        get {
+            guard let colors = defaults.array(forKey: CZSettingsKeys.autoColorizePalette) as? [[Double]],
+                  colors.count == 4, colors.allSatisfy({ $0.count == 3 && $0.allSatisfy { $0.isFinite && (0...1).contains($0) } }) else { return Self.defaultColorizePalette }
+            return colors
+        }
+        set { defaults.set(newValue, forKey: CZSettingsKeys.autoColorizePalette) }
+    }
     public var isRightToLeftReading: Bool {
         get { defaults.object(forKey: CZSettingsKeys.isRightToLeftReading) as? Bool ?? true }
         set { defaults.set(newValue, forKey: CZSettingsKeys.isRightToLeftReading) }
