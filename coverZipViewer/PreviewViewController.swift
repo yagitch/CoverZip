@@ -2742,7 +2742,7 @@ private extension PreviewViewController {
 
 // MARK: - カーソル管理
 
-/// プレビュー画像エリアに左右矢印カーソルを表示するための透明オーバーレイビュー。
+/// プレビュー画像エリアのマウス移動を通知する透明オーバーレイビュー。カーソルは変更しない。
 private final class PreviewCursorAreaView: NSView {
     override var acceptsFirstResponder: Bool { false }
 
@@ -2750,24 +2750,6 @@ private final class PreviewCursorAreaView: NSView {
     var onMouseMoved: ((NSPoint) -> Void)?
     /// カーソルが画像領域から離れた際に通知する（進捗バーの即時消灯に使用）
     var onMouseExited: (() -> Void)?
-
-    // カーソル画像を初回のみ生成（フォールバックあり）
-    // ホットスポット: 32×32pt 画像の矢印先端を想定。実際の画像に合わせて調整してください。
-    private static let cursorLeft: NSCursor = {
-        let bundle = Bundle(for: PreviewCursorAreaView.self)
-        if let img = bundle.image(forResource: "cursor-left") {
-            return NSCursor(image: img, hotSpot: NSPoint(x: 2, y: 16))
-        }
-        return .resizeLeft
-    }()
-
-    private static let cursorRight: NSCursor = {
-        let bundle = Bundle(for: PreviewCursorAreaView.self)
-        if let img = bundle.image(forResource: "cursor-right") {
-            return NSCursor(image: img, hotSpot: NSPoint(x: 29, y: 16))
-        }
-        return .resizeRight
-    }()
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
@@ -2792,29 +2774,15 @@ private final class PreviewCursorAreaView: NSView {
     }
 
     override func mouseEntered(with event: NSEvent) {
-        updateCursor(for: event)
         onMouseMoved?(convert(event.locationInWindow, from: nil))
     }
 
     override func mouseMoved(with event: NSEvent) {
-        updateCursor(for: event)
         onMouseMoved?(convert(event.locationInWindow, from: nil))
     }
 
     override func mouseExited(with event: NSEvent) {
-        NSCursor.arrow.set()
         onMouseExited?()
     }
 
-    // ウィンドウ内でのカーソル矩形（mouseMoved が届かないケースの補完）
-    override func resetCursorRects() {
-        let half = bounds.width / 2
-        addCursorRect(NSRect(x: 0, y: 0, width: half, height: bounds.height), cursor: Self.cursorLeft)
-        addCursorRect(NSRect(x: half, y: 0, width: bounds.width - half, height: bounds.height), cursor: Self.cursorRight)
-    }
-
-    private func updateCursor(for event: NSEvent) {
-        let x = convert(event.locationInWindow, from: nil).x
-        (x < bounds.width / 2 ? Self.cursorLeft : Self.cursorRight).set()
-    }
 }
