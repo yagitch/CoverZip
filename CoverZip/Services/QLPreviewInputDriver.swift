@@ -328,6 +328,8 @@ enum QLPreviewInputDriver {
                 } else {
                     PreviewSessionCommandDispatcher.post(command: isLeft ? .goLeftArrowPage : .goRightArrowPage)
                 }
+            case 125: PreviewSessionCommandDispatcher.post(command: .goForwardPage)  // ↓: 次ページ
+            case 126: PreviewSessionCommandDispatcher.post(command: .goBackwardPage) // ↑: 前ページ
             case 49:  // Space: 読み方向に応じてページ送り/戻し
                 let goForward = !event.modifierFlags.contains(.shift)
                 PreviewSessionCommandDispatcher.post(command: goForward ? .goForwardPage : .goBackwardPage)
