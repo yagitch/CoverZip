@@ -7,6 +7,17 @@
 本体の内蔵ビューアとFinderのQuick Lookは共通の `ImageManager` を使用します。
 キー入力・アプリ識別子・設定キーは変更していません。
 
+## ウインドウと開始ページ（ビルド31）
+
+Quick Look・内蔵ビューアとも、毎回1ページ目から開きます。
+読書位置の保存・復元を無効化しています。既存の履歴データは削除しません。
+
+「ウィンドウサイズ・位置を復元」が有効な場合、通常ウインドウのサイズを
+ファイル共通で保持します。本体は外枠サイズを保存・復元し、Finder Quick Lookは
+既存のKeyHelperが実ウインドウのサイズを保存・復元します。両者は同じ保存先を使います。
+Quick Lookでの機能にはKeyHelperの有効化と既存のアクセシビリティ権限が必要です。
+フルスクリーンの寸法は通常サイズに上書きしません。
+
 ## ローカル署名
 
 このフォークのApp Groupは `6KCX8JYZB7.com.yagitch.CoverZip` です。
@@ -15,7 +26,7 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
-導入先は `/Applications/CoverZip.app`、改修版のビルド番号は30です。
+導入先は `/Applications/CoverZip.app`、改修版のビルド番号は31です。
 公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
 署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
 登録し直します。Karabinerの設定変更は不要です。
@@ -25,7 +36,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project CoverZip.xcodeproj -scheme CoverZip -configuration Release \
   -derivedDataPath .build-local build DEVELOPMENT_TEAM=6KCX8JYZB7 \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Development' \
-  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=30
+  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=31
 ```
 
 境界条件のテスト: `python3 tests/check_page_navigation.py`

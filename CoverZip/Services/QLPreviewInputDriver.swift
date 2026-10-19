@@ -146,6 +146,11 @@ enum QLPreviewInputDriver {
             window.tabbingMode = .disallowed
             window.collectionBehavior = [.managed, .participatesInCycle]
 
+            // 保存値は外枠。contentRectとして使った際に加わるタイトルバー分を補正する。
+            if let savedFrame = loadSavedWindowFrame() {
+                window.setFrame(savedFrame, display: false)
+            }
+
             // 保存されたフレームがない場合のみ中央配置
             if loadSavedWindowFrame() == nil {
                 window.center()
@@ -188,6 +193,7 @@ enum QLPreviewInputDriver {
                 object: window,
                 queue: .main
             ) { _ in
+                guard !window.styleMask.contains(.fullScreen) else { return }
                 saveWindowFrame(window.frame)
             }
 
@@ -196,13 +202,14 @@ enum QLPreviewInputDriver {
                 object: window,
                 queue: .main
             ) { _ in
+                guard !window.styleMask.contains(.fullScreen) else { return }
                 saveWindowFrame(window.frame)
             }
 
             // クローズ時に参照を解放＋オブザーバ解除＋最終フレーム保存
             NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { note in
                 // 最終フレームを保存
-                saveWindowFrame(window.frame)
+                if !window.styleMask.contains(.fullScreen) { saveWindowFrame(window.frame) }
                 // オブザーバ解除
                 NotificationCenter.default.removeObserver(frameObserver)
                 NotificationCenter.default.removeObserver(moveObserver)

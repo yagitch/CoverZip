@@ -40,7 +40,8 @@ final class ReadingHistoryManager {
     }
     
     var isEnabled: Bool {
-        get { defaults.bool(forKey: CZSettingsKeys.readingHistoryEnabled) }
+        // このフォークでは、どのファイルも毎回先頭から開く。
+        get { false }
         set { defaults.set(newValue, forKey: CZSettingsKeys.readingHistoryEnabled) }
     }
     

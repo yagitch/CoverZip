@@ -22,6 +22,10 @@ final class KeyHelperController: NSObject {
     private var visibleUntil: Date?
     private var trustedCheckTimer: Timer?
     private var isAccessibilityTrusted = false
+    private var windowSizeTimer: Timer?
+    private var sizedQuickLookWindow: AXUIElement?
+    private var lastQuickLookSize: CGSize?
+    private var windowSizeSettlesAt = Date.distantPast
 
     override init() {
         super.init()
@@ -30,6 +34,11 @@ final class KeyHelperController: NSObject {
         setupDarwinNotificationObservers()
         refreshAccessibilityTrust(installIfNeeded: true, promptIfNeeded: isKeyHelperEnabledForRuntime())
         startTrustedCheckTimer()
+        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
+            self?.syncQuickLookWindowSize()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        windowSizeTimer = timer
     }
 
     deinit {
@@ -38,6 +47,55 @@ final class KeyHelperController: NSObject {
         DistributedNotificationCenter.default().removeObserver(self)
         CFNotificationCenterRemoveEveryObserver(CFNotificationCenterGetDarwinNotifyCenter(), Unmanaged.passUnretained(self).toOpaque())
         trustedCheckTimer?.invalidate()
+        windowSizeTimer?.invalidate()
+    }
+
+    /// Finderの実ウインドウの外枠サイズを、本体と共通の設定へ保存する。
+    private func syncQuickLookWindowSize() {
+        guard isAccessibilityTrusted, isKeyHelperEnabledForRuntime(),
+              (CZUserDefaults.shared.object(forKey: CZSettingsKeys.restoreWindowFrameEnabled) as? Bool ?? true),
+              let visibleUntil, visibleUntil > Date() else {
+            sizedQuickLookWindow = nil
+            lastQuickLookSize = nil
+            return
+        }
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              app.bundleIdentifier == finderBundleIdentifier else { return }
+        let appElement = AXUIElementCreateApplication(app.processIdentifier)
+        guard let window = resolveAXWindowList(from: appElement).first(where: {
+            (copyAttributeValue(of: $0, attribute: kAXSubroleAttribute as CFString) as? String) == "Quick Look"
+        }) else {
+            sizedQuickLookWindow = nil
+            lastQuickLookSize = nil
+            return
+        }
+        // フルスクリーンの寸法で通常ウインドウの保存値を上書きしない。
+        if (copyAttributeValue(of: window, attribute: "AXFullScreen" as CFString) as? Bool) == true { return }
+        guard let value = copyAttributeValue(of: window, attribute: kAXSizeAttribute as CFString),
+              CFGetTypeID(value) == AXValueGetTypeID() else { return }
+        var size = CGSize.zero
+        guard AXValueGetValue(unsafeBitCast(value, to: AXValue.self), .cgSize, &size),
+              size.width > 100, size.height > 100 else { return }
+        if sizedQuickLookWindow == nil || !CFEqual(sizedQuickLookWindow!, window) {
+            sizedQuickLookWindow = window
+            lastQuickLookSize = nil
+            windowSizeSettlesAt = Date().addingTimeInterval(0.75)
+            if let saved = CZUserDefaults.shared.string(forKey: CZSettingsKeys.savedWindowFrameString) {
+                var target = NSRectFromString(saved).size
+                if target.width > 100, target.height > 100,
+                   let axSize = AXValueCreate(.cgSize, &target) {
+                    _ = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, axSize)
+                }
+            }
+            return
+        }
+        guard Date() >= windowSizeSettlesAt else { return }
+        if lastQuickLookSize != size {
+            var frame = CZUserDefaults.shared.string(forKey: CZSettingsKeys.savedWindowFrameString).map(NSRectFromString) ?? .zero
+            frame.size = size
+            CZUserDefaults.shared.set(NSStringFromRect(frame), forKey: CZSettingsKeys.savedWindowFrameString)
+            lastQuickLookSize = size
+        }
     }
 
     private func setupDistributedNotificationObservers() {
@@ -245,6 +303,8 @@ final class KeyHelperController: NSObject {
     private func clearActiveSession() {
         activeSessionID = nil
         visibleUntil = nil
+        sizedQuickLookWindow = nil
+        lastQuickLookSize = nil
         CZUserDefaults.shared.removeObject(forKey: CZSettingsKeys.keyHelperActiveSessionID)
         CZUserDefaults.shared.removeObject(forKey: CZSettingsKeys.keyHelperVisibleUntil)
     }
