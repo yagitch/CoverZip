@@ -93,6 +93,11 @@ public final class CZSettings {
     }
 
     // MARK: - ウィンドウフレーム永続化
+    public var quitOnLastViewerKeyboardClose: Bool {
+        get { defaults.object(forKey: CZSettingsKeys.quitOnLastViewerKeyboardClose) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: CZSettingsKeys.quitOnLastViewerKeyboardClose) }
+    }
+
     public var restoreWindowFrameEnabled: Bool {
         get { defaults.object(forKey: CZSettingsKeys.restoreWindowFrameEnabled) as? Bool ?? true }
         set { defaults.set(newValue, forKey: CZSettingsKeys.restoreWindowFrameEnabled) }

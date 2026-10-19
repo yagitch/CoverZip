@@ -48,6 +48,10 @@ final class AppSettingsWriter: ObservableObject {
         }
     }
 
+    @Published var quitOnLastViewerKeyboardClose: Bool = true {
+        didSet { core.quitOnLastViewerKeyboardClose = quitOnLastViewerKeyboardClose }
+    }
+
     @Published var restoreWindowFrameEnabled: Bool = true {
         didSet { core.restoreWindowFrameEnabled = restoreWindowFrameEnabled }
     }
@@ -82,6 +86,7 @@ final class AppSettingsWriter: ObservableObject {
         slideshowInterval = core.slideshowInterval
         isThumbnailStripVisible = core.isThumbnailStripVisible
         restoreWindowFrameEnabled = core.restoreWindowFrameEnabled
+        quitOnLastViewerKeyboardClose = core.quitOnLastViewerKeyboardClose
         imageDecodeCachePolicy = core.imageDecodeCachePolicy
         pageTransitionEnabled = core.pageTransitionEnabled
         defaultViewMode = core.defaultViewMode

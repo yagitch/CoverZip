@@ -209,6 +209,11 @@ enum QLPreviewInputDriver {
 
             // クローズ時に参照を解放＋オブザーバ解除＋最終フレーム保存
             NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { note in
+                // 既存のKarabiner設定は両方の閉じるキーをCommand＋Wへ変換する。
+                let event = NSApp.currentEvent
+                let keyboardClose = event?.type == .keyDown && event?.keyCode == 13
+                    && event?.modifierFlags.contains(.command) == true
+                let shouldQuit = CZSettings.shared.quitOnLastViewerKeyboardClose && keyboardClose
                 // 最終フレームを保存
                 if !window.styleMask.contains(.fullScreen) { saveWindowFrame(window.frame) }
                 // オブザーバ解除
@@ -217,6 +222,15 @@ enum QLPreviewInputDriver {
                 // 参照解放
                 retainedWindows.removeAll { $0 == window }
                 NotificationCenter.default.post(name: viewerWindowStateChanged, object: nil)
+                if shouldQuit {
+                    // クローズ処理が完了してから、設定画面を含めて残るウインドウを確認する。
+                    DispatchQueue.main.async {
+                        let hasOtherWindow = NSApp.windows.contains {
+                            $0 !== window && ($0.isVisible || $0.isMiniaturized) && $0.canBecomeKey
+                        }
+                        if !hasOtherWindow { NSApp.terminate(nil) }
+                    }
+                }
             }
 
             retainedWindows.append(window)

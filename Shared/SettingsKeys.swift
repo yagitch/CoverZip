@@ -32,6 +32,7 @@ public enum CZSettingsKeys {
     // ウィンドウフレーム永続化
     public static let restoreWindowFrameEnabled = "restoreWindowFrameEnabled"
     public static let savedWindowFrameString = "savedWindowFrameString"
+    public static let quitOnLastViewerKeyboardClose = "quitOnLastViewerKeyboardClose"
     // 読書履歴
     public static let readingHistoryEnabled = "readingHistoryEnabled"
     public static let readingHistoryData = "readingHistoryData"

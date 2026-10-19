@@ -13,6 +13,11 @@ struct WindowSettingsView: View {
     var body: some View {
         Form {
             Section {
+                Toggle("最後の閲覧ウインドウをキーで閉じたらアプリを終了", isOn: $settings.quitOnLastViewerKeyboardClose)
+            } footer: {
+                Text("本体でバッククオート・バックスラッシュ（Command＋W）を使ったときに適用します。他のウインドウが開いている場合やFinderのQuick Lookには適用しません。")
+            }
+            Section {
                 Toggle(CZLocalized.string("settings.window.restore_frame", defaultValue: "Restore window size and position"), isOn: Binding(
                     get: { settings.restoreWindowFrameEnabled },
                     set: { settings.restoreWindowFrameEnabled = $0 }
