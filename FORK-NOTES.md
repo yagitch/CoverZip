@@ -1,5 +1,13 @@
 # このフォークの変更
 
+ビルド49では、日本語・記号を含むURLを本体で開く際の強制終了を修正しました。
+URLのパーセント表記をNSLogの書式文字列として解釈していたことが原因です。
+ファイルオープン、ルーティング判定、設定保存エラー、ZIPエラーの動的ログを
+固定書式の引数として渡し、ファイル名やエラー文中の `%` をそのまま出力します。
+`python3 tests/check_logging.py` で日本語URLと書式記号を含む入力を検証します。
+署名付きReleaseビルドと署名検証に成功し、実機で日本語・`%s %@ %n` を含む
+テストZIPの画像表示まで確認済みです。報告されたSMB上の原本は未検証です。
+
 ビルド48・AIプラグインv5では、利用者の指定により顔限定の補正を廃止し、画像全体への
 一律の色バランス補正に変更しました。漫画用generatorの出力に、基準RGBの既定値に対する
 比率を「色合い補正」の強さで混ぜた係数を適用します。顔・胴体・手足・服・背景は同じ扱いです。
@@ -160,7 +168,7 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
-導入先は `/Applications/CoverZip.app`、改修版のビルド番号は48です。
+導入先は `/Applications/CoverZip.app`、改修版のビルド番号は49です。
 公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
 署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
 登録し直します。Karabinerの設定変更は不要です。
@@ -170,7 +178,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project CoverZip.xcodeproj -scheme CoverZip -configuration Release \
   -derivedDataPath .build-local build DEVELOPMENT_TEAM=6KCX8JYZB7 \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Development' \
-  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=48
+  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=49
 ```
 
 境界条件のテスト: `python3 tests/check_page_navigation.py`

@@ -53,12 +53,12 @@ class KeywordMatcher {
     static func checkKeyword(for fileName: String, folderComponents: [String], fileExtension: String, using settings: KeywordSettings) -> KeywordMatchResult {
         #if DEBUG
         let folderDesc = folderComponents.joined(separator: "/")
-        NSLog("アーカイブファイルマッチング開始: ファイル名='\(fileName)', フォルダ='\(folderDesc)', 拡張子='\(fileExtension)'")
+        NSLog("%@", "アーカイブファイルマッチング開始: ファイル名='\(fileName)', フォルダ='\(folderDesc)', 拡張子='\(fileExtension)'")
         #endif
 
         for rule in settings.rules {
             #if DEBUG
-            NSLog("ルールチェック: '\(rule.keyword)' (タイプ: \(rule.type))")
+            NSLog("%@", "ルールチェック: '\(rule.keyword)' (タイプ: \(rule.type))")
             #endif
 
             let isMatch: Bool
@@ -83,17 +83,17 @@ class KeywordMatcher {
             #if DEBUG
             switch rule.type {
             case .filename:
-                NSLog("ファイル名マッチング (\(rule.matchMode)): '\(fileName)' vs '\(rule.keyword)' -> \(isMatch)")
+                NSLog("%@", "ファイル名マッチング (\(rule.matchMode)): '\(fileName)' vs '\(rule.keyword)' -> \(isMatch)")
             case .fileExtension:
-                NSLog("拡張子マッチング (\(rule.matchMode)): '\(fileExtension)' vs '\(rule.keyword)' -> \(isMatch)")
+                NSLog("%@", "拡張子マッチング (\(rule.matchMode)): '\(fileExtension)' vs '\(rule.keyword)' -> \(isMatch)")
             case .pathname:
-                NSLog("フォルダ名マッチング (\(rule.matchMode)): vs '\(rule.keyword)' -> \(isMatch)")
+                NSLog("%@", "フォルダ名マッチング (\(rule.matchMode)): vs '\(rule.keyword)' -> \(isMatch)")
             }
             #endif
 
             if isMatch {
                 #if DEBUG
-                NSLog("マッチ成功: '\(rule.keyword)' -> '\(rule.application)' (タイプ: \(matchType))")
+                NSLog("%@", "マッチ成功: '\(rule.keyword)' -> '\(rule.application)' (タイプ: \(matchType))")
                 #endif
                 return KeywordMatchResult(
                     matchedApplication: rule.application,
@@ -104,7 +104,7 @@ class KeywordMatcher {
         }
 
         #if DEBUG
-        NSLog("マッチなし - デフォルトアプリケーション: '\(settings.defaultApplication)'")
+        NSLog("%@", "マッチなし - デフォルトアプリケーション: '\(settings.defaultApplication)'")
         #endif
         return KeywordMatchResult(
             matchedApplication: settings.defaultApplication.isEmpty ? nil : settings.defaultApplication,
@@ -162,7 +162,7 @@ class KeywordMatcher {
             let range = NSRange(text.startIndex..<text.endIndex, in: text)
             return regex.firstMatch(in: text, options: [], range: range) != nil
         } catch {
-            NSLog("正規表現エラー: '\(pattern)' - \(error.localizedDescription)")
+            NSLog("%@", "正規表現エラー: '\(pattern)' - \(error.localizedDescription)")
             // 正規表現が無効な場合は通常の部分一致にフォールバック
             return text.lowercased().contains(pattern.lowercased())
         }

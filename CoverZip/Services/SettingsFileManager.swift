@@ -24,7 +24,7 @@ class SettingsFileManager {
             try settings.save()
             return true
         } catch {
-            NSLog("ルーティング設定の保存に失敗しました: \(error.localizedDescription)")
+            NSLog("%@", "ルーティング設定の保存に失敗しました: \(error.localizedDescription)")
             return false
         }
     }

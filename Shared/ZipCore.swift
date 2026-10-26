@@ -58,7 +58,7 @@ public enum CZZip {
     /// ZIP ファイル URL から全画像エントリを読み込む。
     public static func imageEntries(from url: URL) -> [CZImageEntry] {
         do { return imageEntries(from: try Data(contentsOf: url, options: [.mappedIfSafe])) }
-        catch { NSLog("CZZip read error: \(error)"); return [] }
+        catch { NSLog("%@", "CZZip read error: \(error)"); return [] }
     }
 
     /// ZIP データから画像エントリのメタデータだけを読み込む（画像データは未読込）。
@@ -73,7 +73,7 @@ public enum CZZip {
     /// ZIP ファイル URL から画像エントリのメタデータを読み込む。
     public static func imageEntryInfoList(from url: URL) -> [CZImageEntryInfo] {
         do { return imageEntryInfoList(from: try Data(contentsOf: url, options: [.mappedIfSafe])) }
-        catch { NSLog("CZZip read error: \(error)"); return [] }
+        catch { NSLog("%@", "CZZip read error: \(error)"); return [] }
     }
 
     /// ZIP データから指定エントリ情報の画像データを抽出する。
@@ -96,13 +96,13 @@ public enum CZZip {
     /// - Returns: 見つかった画像データ。存在しない場合は nil。
     public static func firstImageData(from url: URL, isZeroPaddedFirstPreferred: Bool) -> Data? {
         do { return firstImageData(from: try Data(contentsOf: url, options: [.mappedIfSafe]), isZeroPaddedFirstPreferred: isZeroPaddedFirstPreferred) }
-        catch { NSLog("CZZip read error: \(error)"); return nil }
+        catch { NSLog("%@", "CZZip read error: \(error)"); return nil }
     }
 
     /// オプションフラグ（ヒューリスティック + 自然順フォールバック）で先頭画像データを読み込む。
     public static func firstImageData(from url: URL, options: CZFirstImageOptions) -> Data? {
         do { return firstImageData(from: try Data(contentsOf: url, options: [.mappedIfSafe]), options: options) }
-        catch { NSLog("CZZip read error: \(error)"); return nil }
+        catch { NSLog("%@", "CZZip read error: \(error)"); return nil }
     }
 
     /// 生 ZIP データからオプションフラグで先頭画像データを読み込む。
@@ -117,7 +117,7 @@ public enum CZZip {
     /// オプションフラグで先頭画像エントリ（ファイル名 + データ）を読み込む。
     public static func firstImageEntry(from url: URL, options: CZFirstImageOptions) -> CZImageEntry? {
         do { return firstImageEntry(from: try Data(contentsOf: url, options: [.mappedIfSafe]), options: options) }
-        catch { NSLog("CZZip read error: \(error)"); return nil }
+        catch { NSLog("%@", "CZZip read error: \(error)"); return nil }
     }
 
     /// 生データからオプションフラグで先頭画像エントリ（ファイル名 + データ）を読み込む。
@@ -138,7 +138,7 @@ public enum CZZip {
     /// 大きな画像でも全展開を避けるため、段階的デコードを試み、サムネイル取得時点で処理を打ち切る。
     public static func firstImageThumbnail(from url: URL, options: CZFirstImageOptions, maxPixel: Int) -> FirstImageThumbnailResult {
         do { return firstImageThumbnail(from: try Data(contentsOf: url, options: [.mappedIfSafe]), options: options, maxPixel: maxPixel) }
-        catch { NSLog("CZZip read error: \(error)"); return .none }
+        catch { NSLog("%@", "CZZip read error: \(error)"); return .none }
     }
 
     public static func firstImageThumbnail(from data: Data, options: CZFirstImageOptions, maxPixel: Int) -> FirstImageThumbnailResult {
