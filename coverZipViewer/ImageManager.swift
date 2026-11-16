@@ -87,6 +87,7 @@ class ImageManager: ThumbnailImageProviding {
     }
     /// 進行中tinyデコードの購読者一覧（cacheStateQueueで保護。同一indexの要求は相乗りして完了時に全員へ通知する）
     private var pendingTinyRequests: [Int: [TinyRequestSubscriber]] = [:]
+    private var tinyGeneration = UUID()
     private let tinyBaseMaxPixelSize = 256
     private let tinyDecodeQueue = DispatchQueue(label: "com.dmng.coverzip.thumbnail", qos: .utility, attributes: .concurrent)
 
@@ -227,7 +228,15 @@ class ImageManager: ThumbnailImageProviding {
         tinyImageCache.removeAll()
         tinyImageCacheSizeMap.removeAll()
         tinyImageCacheOrder.removeAll()
-        cacheStateQueue.sync { pendingTinyRequests.removeAll() }
+        let previousSubscribers = cacheStateQueue.sync {
+            tinyGeneration = UUID()
+            let previous = pendingTinyRequests.values.flatMap { $0 }
+            pendingTinyRequests.removeAll()
+            return previous
+        }
+        DispatchQueue.main.async {
+            previousSubscribers.forEach { $0.completion(-1, nil) }
+        }
         setupMemoryPressureMonitoring()
 
         // 初期表示の体感を落とさないため先頭のみ先にデコード
@@ -518,6 +527,7 @@ class ImageManager: ThumbnailImageProviding {
         // 同一indexのデコードが進行中なら相乗り登録し、完了時にまとめて通知する
         // （以前はここで黙って破棄しており、白ページがtinyへ昇格できないままになるケースがあった）
         let subscriber = TinyRequestSubscriber(isStillNeeded: isStillNeeded, completion: completion)
+        let requestGeneration = cacheStateQueue.sync { tinyGeneration }
         let isFirstRequest: Bool = cacheStateQueue.sync {
             if pendingTinyRequests[index] != nil {
                 pendingTinyRequests[index]?.append(subscriber)
@@ -530,9 +540,11 @@ class ImageManager: ThumbnailImageProviding {
 
         tinyDecodeQueue.async { [weak self] in
             guard let self else { return }
-            let subscribers = self.cacheStateQueue.sync { self.pendingTinyRequests[index] ?? [] }
+            let subscribers = self.cacheStateQueue.sync {
+                self.tinyGeneration == requestGeneration ? (self.pendingTinyRequests[index] ?? []) : []
+            }
             guard subscribers.contains(where: { $0.isStillNeeded() }) else {
-                self.finishTinyRequest(index: index, image: nil, maxPixelSize: targetMaxPixelSize)
+                self.finishTinyRequest(index: index, image: nil, maxPixelSize: targetMaxPixelSize, generation: requestGeneration)
                 return
             }
             guard let imageData = entrySource.imageData(at: index),
@@ -542,18 +554,19 @@ class ImageManager: ThumbnailImageProviding {
                     0,
                     CZImageIOOptionsBuilder.buildThumbnailOptions(maxPixels: targetMaxPixelSize, cachePolicy: .noCache)
                   ) else {
-                self.finishTinyRequest(index: index, image: nil, maxPixelSize: targetMaxPixelSize)
+                self.finishTinyRequest(index: index, image: nil, maxPixelSize: targetMaxPixelSize, generation: requestGeneration)
                 return
             }
 
-            self.finishTinyRequest(index: index, image: NSImage(cgImage: cgImage, size: .zero), maxPixelSize: targetMaxPixelSize)
+            self.finishTinyRequest(index: index, image: NSImage(cgImage: cgImage, size: .zero), maxPixelSize: targetMaxPixelSize, generation: requestGeneration)
         }
     }
 
     /// tinyデコードの完了処理。成功時はキャッシュへ登録し、失敗時もnilで購読者全員へ必ず通知する
-    private func finishTinyRequest(index: Int, image: NSImage?, maxPixelSize: Int) {
+    private func finishTinyRequest(index: Int, image: NSImage?, maxPixelSize: Int, generation: UUID) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+            guard self.cacheStateQueue.sync(execute: { self.tinyGeneration == generation }) else { return }
             if let image {
                 self.cacheTinyImage(image, for: index, maxPixelSize: maxPixelSize)
             }

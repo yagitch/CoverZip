@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import AppKit
 
 enum PreviewSessionCommandDispatcher {
     /// 読み方向変更を他プロセスへ即時配信する。UserDefaults 同期に依存せず値を直接渡す。
@@ -37,6 +38,12 @@ enum PreviewSessionCommandDispatcher {
         var userInfo: [String: Any] = [
             CZPreviewSessionCommandUserInfoKeys.command: command.rawValue
         ]
+        if command == .togglePageOverview || command == .dismissPageOverview {
+            userInfo[CZPreviewVisibilityUserInfoKeys.nativeViewer] = true
+            if let url = NSApp.keyWindow?.representedURL {
+                userInfo[CZPreviewVisibilityUserInfoKeys.filePath] = url.resolvingSymlinksInPath().path
+            }
+        }
 
         if let boolValue {
             userInfo[CZPreviewSessionCommandUserInfoKeys.boolValue] = boolValue

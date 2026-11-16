@@ -118,6 +118,13 @@ struct ViewMenuCommands: Commands {
             Button("色合い調整HUD…") { ColorAdjustmentHUD.shared.show() }
                 .keyboardShortcut("e", modifiers: [.command, .option])
             Divider()
+            Button {
+                InternalViewer.shared.applyTogglePageOverview()
+            } label: {
+                menuLabel(for: .togglePageOverview)
+            }
+            .keyboardShortcut("g", modifiers: [])
+            .disabled(!state.isViewerOpen)
             Group {
                 // 読み方向
                 Toggle(isOn: Binding(

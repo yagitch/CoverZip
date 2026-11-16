@@ -420,6 +420,9 @@ enum QLPreviewInputDriver {
         init() { super.init(frame: .zero) }
         override var acceptsFirstResponder: Bool { true }
         override var isOpaque: Bool { false }
+        override func cancelOperation(_ sender: Any?) {
+            PreviewSessionCommandDispatcher.post(command: .dismissPageOverview)
+        }
         // 左クリックはプレビューへ通し、右クリック/Control-クリックは自分で受ける
         override func hitTest(_ point: NSPoint) -> NSView? {
             guard let ev = NSApp.currentEvent else { return nil }
@@ -435,6 +438,8 @@ enum QLPreviewInputDriver {
             NSLog("[QLInputDriver] keyDown code=%d flags=%lu", Int(event.keyCode), event.modifierFlags.rawValue)
             let isBarePreviewCommand = event.modifierFlags.intersection([.command, .control, .option]).isEmpty
             switch Int(event.keyCode) {
+            case 5 where isBarePreviewCommand: PreviewSessionCommandDispatcher.post(command: .togglePageOverview) // G
+            case 53 where isBarePreviewCommand: PreviewSessionCommandDispatcher.post(command: .dismissPageOverview) // Esc
             case 29 where isBarePreviewCommand: PreviewSessionCommandDispatcher.post(command: .setViewModeAuto)    // 0
             case 18 where isBarePreviewCommand: PreviewSessionCommandDispatcher.post(command: .setViewModeSingle)  // 1
             case 19 where isBarePreviewCommand: PreviewSessionCommandDispatcher.post(command: .setViewModeSpread)  // 2

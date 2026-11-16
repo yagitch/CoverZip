@@ -73,6 +73,9 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     private var loadingIndicator: NSProgressIndicator?
     // サムネイルストリップ
     private var thumbnailStripView: ThumbnailStripView?
+    private var pageOverviewView: PageOverviewView?
+    private var isPageOverviewVisible = false
+    private var resumeSlideshowAfterOverview = false
     private var imageViewBottomToStripConstraint: NSLayoutConstraint?
     private var thumbnailStripHeightConstraint: NSLayoutConstraint?
     private var isThumbnailStripVisible: Bool = true
@@ -183,6 +186,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
 
     override func viewWillDisappear() {
         super.viewWillDisappear()
+        closePageOverview(restoreFocus: false, resumeSlideshow: false)
         aiColorizer.cancelAll()
         stopPreviewVisibilityHeartbeat()
         postPreviewVisibilityNotification(CZDistributedNotifications.previewExtensionHidden)
@@ -228,8 +232,15 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     private func postPreviewVisibilityNotification(_ name: Notification.Name) {
         let userInfo: [String: Any] = [
             CZPreviewVisibilityUserInfoKeys.sessionID: previewVisibilitySessionID,
+            CZPreviewVisibilityUserInfoKeys.pageOverviewVisible: isPageOverviewVisible,
+            CZPreviewVisibilityUserInfoKeys.nativeViewer: isNativeViewer,
             CZPreviewVisibilityUserInfoKeys.timestamp: Date().timeIntervalSince1970
         ]
+        if !isNativeViewer {
+            let overviewName = name == CZDistributedNotifications.previewExtensionVisible && isPageOverviewVisible
+                ? CZDarwinNotifications.overviewVisible : CZDarwinNotifications.overviewHidden
+            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFNotificationName(overviewName as CFString), nil, nil, true)
+        }
         CZUserDefaults.shared.set(Date().timeIntervalSince1970, forKey: CZSettingsKeys.previewLastVisibilityPostAt)
         CZUserDefaults.shared.set(name.rawValue, forKey: CZSettingsKeys.previewLastVisibilityPostName)
         CZUserDefaults.shared.set(previewVisibilitySessionID, forKey: CZSettingsKeys.previewLastVisibilitySessionID)
@@ -480,6 +491,17 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         if let keyDown = NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: { [weak self] event -> NSEvent? in
             guard let self else { return event }
             guard self.view.window != nil || self.view.superview != nil else { return event }
+            if self.isPageOverviewVisible {
+                if event.keyCode == 53 {
+                    self.closePageOverview()
+                    return nil
+                }
+                return event
+            }
+            if event.keyCode == 5, event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty {
+                self.togglePageOverview(nil)
+                return nil
+            }
             guard let specialKey = event.specialKey else { return event }
             if self.isThumbnailStripFirstResponderActive() {
                 return event
@@ -708,6 +730,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     */
 
     func preparePreviewOfFile(at url: URL) async throws {
+        await MainActor.run { closePageOverview(restoreFocus: false, resumeSlideshow: false) }
         aiColorizer.cancelAll()
         aiDiagnosticRequestID = nil
         aiDiagnosticClient.cancelAll()
@@ -1020,7 +1043,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
 
     /// 進捗バーをフェード表示する
     private func showPager() {
-        guard let bar = pageProgressBar, !isPagerVisible else { return }
+        guard !isPageOverviewVisible, let bar = pageProgressBar, !isPagerVisible else { return }
         isPagerVisible = true
         bar.isHidden = false
         NSAnimationContext.runAnimationGroup { context in
@@ -1130,6 +1153,8 @@ class PreviewViewController: NSViewController, QLPreviewingController {
                     return ("t", [])
                 case .setThumbnailStripVisible:
                     return ("l", [])
+                case .togglePageOverview:
+                    return ("g", [])
                 case .setSlideshowEnabled:
                     return ("s", [])
                 default:
@@ -1252,6 +1277,10 @@ class PreviewViewController: NSViewController, QLPreviewingController {
             return #selector(toggleSpreadPairingOffset(_:))
         case .setThumbnailStripVisible:
             return #selector(toggleThumbnailStripVisibility(_:))
+        case .togglePageOverview:
+            return #selector(togglePageOverview(_:))
+        case .dismissPageOverview:
+            return nil
         case .setPageTransitionEnabled:
             return #selector(toggleTransition(_:))
         case .setSlideshowEnabled:
@@ -1279,6 +1308,10 @@ class PreviewViewController: NSViewController, QLPreviewingController {
             return imageManager.getSpreadPairOffset() == 1 ? .on : .off
         case .setThumbnailStripVisible:
             return isThumbnailStripVisible ? .on : .off
+        case .togglePageOverview:
+            return isPageOverviewVisible ? .on : .off
+        case .dismissPageOverview:
+            return .off
         case .setPageTransitionEnabled:
             return isTransitionEnabled ? .on : .off
         case .setSlideshowEnabled:
@@ -1336,6 +1369,56 @@ class PreviewViewController: NSViewController, QLPreviewingController {
 
     @objc private func toggleThumbnailStripVisibility(_ sender: NSMenuItem) {
         applyThumbnailStripVisibility(!isThumbnailStripVisible)
+    }
+
+    @objc private func togglePageOverview(_ sender: Any?) {
+        if isPageOverviewVisible { closePageOverview(); return }
+        guard imageManager.hasImages() else { return }
+        if pageOverviewView == nil {
+            let overview = PageOverviewView(frame: .zero)
+            overview.translatesAutoresizingMaskIntoConstraints = false
+            overview.thumbnailProvider = imageManager
+            overview.onDismiss = { [weak self] in self?.closePageOverview() }
+            overview.onPageActivated = { [weak self] index in
+                guard let self else { return }
+                self.closePageOverview()
+                self.moveToPageFromThumbnail(index + 1)
+            }
+            view.addSubview(overview, positioned: .above, relativeTo: nil)
+            NSLayoutConstraint.activate([
+                overview.topAnchor.constraint(equalTo: view.topAnchor),
+                overview.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+                overview.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                overview.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+            ])
+            pageOverviewView = overview
+        }
+        pendingSingleClick?.cancel()
+        resumeSlideshowAfterOverview = isSlideshowEnabled
+        if isSlideshowEnabled { stopSlideshow() }
+        hidePagerImmediately()
+        isPageOverviewVisible = true
+        cursorAreaOverlay?.isHidden = true
+        view.layoutSubtreeIfNeeded()
+        pageOverviewView?.show(itemCount: imageManager.getImageCount(), currentIndex: imageManager.currentPageIndex, isRightToLeft: isRightToLeftReading)
+        NSCursor.arrow.set()
+        updateContextMenuStates()
+        postPreviewVisibilityNotification(CZDistributedNotifications.previewExtensionVisible)
+    }
+
+    private func closePageOverview(restoreFocus: Bool = true, resumeSlideshow: Bool = true) {
+        guard isPageOverviewVisible else { return }
+        isPageOverviewVisible = false
+        cursorAreaOverlay?.isHidden = false
+        pageOverviewView?.reset()
+        if resumeSlideshow, resumeSlideshowAfterOverview { startSlideshow() }
+        resumeSlideshowAfterOverview = false
+        updateContextMenuStates()
+        postPreviewVisibilityNotification(CZDistributedNotifications.previewExtensionVisible)
+        if restoreFocus {
+            thumbnailStripView?.focusCollectionView()
+            DistributedNotificationCenter.default().post(name: CZDistributedNotifications.sliderOperationCompleted, object: nil)
+        }
     }
 
     private func applyViewModePreference(_ viewMode: ViewModePreference) {
@@ -1500,7 +1583,18 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         }
         postPreviewSessionCommandHandled(commandID: userInfo[CZPreviewSessionCommandUserInfoKeys.commandID] as? String)
 
+        if command == .togglePageOverview || command == .dismissPageOverview {
+            if let native = userInfo[CZPreviewVisibilityUserInfoKeys.nativeViewer] as? Bool, native != isNativeViewer { return }
+            if let path = userInfo[CZPreviewVisibilityUserInfoKeys.filePath] as? String, path != pageStatusFilePath { return }
+            if let session = userInfo[CZPreviewVisibilityUserInfoKeys.sessionID] as? String, session != previewVisibilitySessionID { return }
+            if command == .togglePageOverview { togglePageOverview(nil) } else { closePageOverview() }
+            return
+        }
+        guard !isPageOverviewVisible else { return }
+
         switch command {
+        case .togglePageOverview, .dismissPageOverview:
+            break
         case .setRightToLeftReading:
             applyReadingDirection(true)
         case .setLeftToRightReading:
@@ -2659,6 +2753,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
 
     // 指定ビュー座標が「通過させるべきNSControl」上かを判定（imageView配下は除外して吸収対象にする）
     private func isPointInsidePassThroughControl(_ pointInView: NSPoint) -> Bool {
+        if isPageOverviewVisible { return true }
         // サムネイルストリップ領域のクリックはそのまま通す（ページ移動を発生させない）
         if let strip = thumbnailStripView, strip.frame.contains(pointInView) { return true }
         guard let hit = view.hitTest(pointInView) else { return false }

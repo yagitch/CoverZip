@@ -55,6 +55,8 @@ final class InternalViewer: NSObject {
                     return ("t", [])
                 case .setThumbnailStripVisible:
                     return ("l", [])
+                case .togglePageOverview:
+                    return ("g", [])
                 case .setSlideshowEnabled:
                     return ("s", [])
                 default:
@@ -74,6 +76,11 @@ final class InternalViewer: NSObject {
     @objc func toggleSlideshow(_ sender: NSMenuItem) { applyToggleSlideshow() }
     @objc func toggleSpreadPairOffset(_ sender: NSMenuItem) { applyToggleSpreadPairOffset() }
     @objc func toggleThumbnailStripVisibility(_ sender: NSMenuItem) { applyToggleThumbnailStrip() }
+    @objc func togglePageOverview(_ sender: NSMenuItem) { applyTogglePageOverview() }
+
+    func applyTogglePageOverview() {
+        PreviewSessionCommandDispatcher.post(command: .togglePageOverview)
+    }
 
     // MARK: - 公開アクション実装（SwiftUI からも呼び出し可能）
     func applySetRightToLeft() {
@@ -183,6 +190,10 @@ final class InternalViewer: NSObject {
             return #selector(toggleSpreadPairOffset(_:))
         case .setThumbnailStripVisible:
             return #selector(toggleThumbnailStripVisibility(_:))
+        case .togglePageOverview:
+            return #selector(togglePageOverview(_:))
+        case .dismissPageOverview:
+            return nil
         case .setPageTransitionEnabled:
             return #selector(toggleTransition(_:))
         case .setSlideshowEnabled:
@@ -210,6 +221,8 @@ final class InternalViewer: NSObject {
             return spreadPairOffset == 1 ? .on : .off
         case .setThumbnailStripVisible:
             return isThumbnailStripVisible ? .on : .off
+        case .togglePageOverview, .dismissPageOverview:
+            return .off
         case .setPageTransitionEnabled:
             return isTransitionEnabled ? .on : .off
         case .setSlideshowEnabled:

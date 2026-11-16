@@ -20,6 +20,7 @@ final class KeyHelperController: NSObject {
     private var runLoopSource: CFRunLoopSource?
     private var activeSessionID: String?
     private var visibleUntil: Date?
+    private var isPageOverviewVisible = false
     private var trustedCheckTimer: Timer?
     private var isAccessibilityTrusted = false
     private var windowSizeTimer: Timer?
@@ -166,6 +167,16 @@ final class KeyHelperController: NSObject {
             CZDarwinNotifications.qlHidden as CFString,
             nil, .deliverImmediately
         )
+        for name in [CZDarwinNotifications.overviewVisible, CZDarwinNotifications.overviewHidden] {
+            CFNotificationCenterAddObserver(center, selfPtr, KeyHelperController.overviewCallback, name as CFString, nil, .deliverImmediately)
+        }
+    }
+
+    private static let overviewCallback: CFNotificationCallback = { _, observer, name, _, _ in
+        guard let observer else { return }
+        let controller = Unmanaged<KeyHelperController>.fromOpaque(observer).takeUnretainedValue()
+        let visible = name?.rawValue as String? == CZDarwinNotifications.overviewVisible
+        DispatchQueue.main.async { controller.isPageOverviewVisible = visible }
     }
 
     private static let darwinVisibleCallback: CFNotificationCallback = { _, observer, _, _, _ in
@@ -270,6 +281,7 @@ final class KeyHelperController: NSObject {
     }
 
     @objc private func handlePreviewVisible(_ notification: Notification) {
+        guard notification.userInfo?[CZPreviewVisibilityUserInfoKeys.nativeViewer] as? Bool != true else { return }
         guard isKeyHelperEnabledForRuntime() else {
             NSLog("[CoverZipKeyHelper] visible ignored: helper disabled")
             CZUserDefaults.shared.set("visible ignored: helper disabled", forKey: CZSettingsKeys.keyHelperLastDecision)
@@ -283,6 +295,9 @@ final class KeyHelperController: NSObject {
         }
 
         activeSessionID = sessionID
+        if notification.userInfo?[CZPreviewVisibilityUserInfoKeys.nativeViewer] as? Bool != true {
+            isPageOverviewVisible = notification.userInfo?[CZPreviewVisibilityUserInfoKeys.pageOverviewVisible] as? Bool ?? false
+        }
         visibleUntil = Date().addingTimeInterval(visibilityTimeout)
         let now = Date().timeIntervalSince1970
         CZUserDefaults.shared.set(sessionID, forKey: CZSettingsKeys.keyHelperActiveSessionID)
@@ -294,6 +309,7 @@ final class KeyHelperController: NSObject {
     }
 
     @objc private func handlePreviewHidden(_ notification: Notification) {
+        guard notification.userInfo?[CZPreviewVisibilityUserInfoKeys.nativeViewer] as? Bool != true else { return }
         guard let sessionID = notification.userInfo?[CZPreviewVisibilityUserInfoKeys.sessionID] as? String else {
             NSLog("[CoverZipKeyHelper] hidden without sessionID")
             CZUserDefaults.shared.set(Date().timeIntervalSince1970, forKey: CZSettingsKeys.keyHelperLastHiddenAt)
@@ -322,6 +338,7 @@ final class KeyHelperController: NSObject {
     }
 
     private func clearActiveSession() {
+        isPageOverviewVisible = false
         activeSessionID = nil
         visibleUntil = nil
         sizedQuickLookWindow = nil
@@ -737,6 +754,10 @@ final class KeyHelperController: NSObject {
         let isShift = flags.contains(.maskShift)
 
         switch keyCode {
+        case 5 where isBarePreviewCommand:
+            return (.togglePageOverview, nil)
+        case 53 where isBarePreviewCommand && isPageOverviewVisible:
+            return (.dismissPageOverview, nil)
         case 29 where isBarePreviewCommand:
             return (.setViewModeAuto, nil)
         case 18 where isBarePreviewCommand:
@@ -788,6 +809,10 @@ final class KeyHelperController: NSObject {
             CZPreviewSessionCommandUserInfoKeys.command: command.rawValue,
             CZPreviewSessionCommandUserInfoKeys.commandID: commandID
         ]
+        if command == .togglePageOverview || command == .dismissPageOverview {
+            userInfo[CZPreviewVisibilityUserInfoKeys.nativeViewer] = false
+            if let activeSessionID { userInfo[CZPreviewVisibilityUserInfoKeys.sessionID] = activeSessionID }
+        }
         if let intValue {
             userInfo[CZPreviewSessionCommandUserInfoKeys.intValue] = intValue
         }

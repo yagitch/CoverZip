@@ -96,6 +96,8 @@ public enum CZPreviewSessionCommand: String {
     case setViewModeSpread
     case setSpreadPairOffset
     case setThumbnailStripVisible
+    case togglePageOverview
+    case dismissPageOverview
     case setPageTransitionEnabled
     case setSlideshowEnabled
     case goToFirstPage
@@ -122,6 +124,9 @@ public enum CZPreviewSessionCommandUserInfoKeys {
 public enum CZPreviewVisibilityUserInfoKeys {
     public static let sessionID = "sessionID"
     public static let timestamp = "timestamp"
+    public static let pageOverviewVisible = "pageOverviewVisible"
+    public static let nativeViewer = "nativeViewer"
+    public static let filePath = "filePath"
 }
 
 public enum CZPreviewContextMenuEntry: Equatable {
@@ -140,6 +145,7 @@ public enum CZPreviewContextMenuLayout {
         .separator,
         .action(.setSpreadPairOffset),
         .action(.setThumbnailStripVisible),
+        .action(.togglePageOverview),
         .separator,
         .action(.setPageTransitionEnabled),
         .action(.setSlideshowEnabled),
@@ -161,6 +167,10 @@ public enum CZPreviewContextMenuLayout {
             return CZLocalized.string("context.menu.spread.offset", defaultValue: "Adjust Spread Pairing")
         case .setThumbnailStripVisible:
             return CZLocalized.string("context.menu.thumbnail.visible", defaultValue: "Show Thumbnail List")
+        case .togglePageOverview:
+            return CZLocalized.string("context.menu.page.overview", defaultValue: "Page Overview")
+        case .dismissPageOverview:
+            return CZLocalized.string("overview.close", defaultValue: "Close (Esc)")
         case .setPageTransitionEnabled:
             return CZLocalized.string("context.menu.page_transition.enabled", defaultValue: "Page Transition Animation")
         case .setSlideshowEnabled:
@@ -213,6 +223,8 @@ public enum CZMenuSymbols {
             return "arrow.left.arrow.right"
         case .setThumbnailStripVisible:
             return "rectangle.grid.1x2"
+        case .togglePageOverview, .dismissPageOverview:
+            return "square.grid.3x3"
         case .setPageTransitionEnabled:
             return "rectangle.on.rectangle"
         case .setSlideshowEnabled:
@@ -292,6 +304,8 @@ public enum CZPreviewContextMenuFactory {
 public enum CZDarwinNotifications {
     public static let qlVisible = "com.dmng.CoverZip.qlVisible"
     public static let qlHidden  = "com.dmng.CoverZip.qlHidden"
+    public static let overviewVisible = "com.dmng.CoverZip.overviewVisible"
+    public static let overviewHidden = "com.dmng.CoverZip.overviewHidden"
 }
 
 // App と Extensions 間で設定を同期するための分散通知

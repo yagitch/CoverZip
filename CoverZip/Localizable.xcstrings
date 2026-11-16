@@ -1,6 +1,20 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "context.menu.page.overview" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Page Overview" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ページ一覧" } }
+      }
+    },
+    "overview.close" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Close (Esc)" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "閉じる（Esc）" } }
+      }
+    },
     "" : {
 
     },
