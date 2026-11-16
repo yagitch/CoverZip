@@ -40,6 +40,7 @@
 - アプリ側の内蔵ビューア: `CoverZip/Services/InternalViewer.swift`（`QLPreviewView` をウィンドウに埋め込み）。
 - キー入力処理は `KeyForwardingView`（First Responder 専用の薄いビュー）で受け取り、`CZPreviewSessionCommand`（`goForwardPage` / `goBackwardPage`）を分散通知で送信してページ送りを駆動（正式: `QLPreviewInputDriver`）。
 - `QLPreviewView` 自体を First Responder にしない（クローズ時の解放競合を回避）。
+- 本体のG/Escは `ViewerWindow.sendEvent` でResponderへの配信前に受け取る。サムネイル等へのフォーカス移動や日本語入力中も一覧を操作できるよう、メニューの文字ショートカットだけに依存しない。
 - クローズ時は OS の標準解放順序（`shouldCloseWithWindow = true`）に委ね、独自のビュー破棄は行わない。
 - Context menu items (reading direction / view mode / spread offset / thumbnail strip visibility / animation / slideshow) are unified between the app-side internal viewer and Quick Look viewer via shared menu definitions.
 - Runtime menu operations from the internal viewer are propagated to the Quick Look viewer via distributed session-command notifications (not direct shared-UserDefaults writes per operation).
