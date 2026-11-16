@@ -11,6 +11,12 @@ helper = (root / "CoverZipKeyHelper/KeyHelperController.swift").read_text()
 start = helper.index("    private func commandForKeyEvent(")
 end = helper.index("    private func postCommand(", start)
 routing_method = helper[start:end].replace("private func", "func", 1)
+eligibility_start = helper.index("    static func supportsFrontmostBundle(")
+eligibility_method = helper[eligibility_start:helper.index("    private func shouldCaptureKeyEvent(", eligibility_start)]
+capture_start = helper.index("    private func shouldCaptureKeyEvent(")
+capture_method = helper[capture_start:helper.index("    private func isFrontmostQuickLookWindowVisible(", capture_start)].replace("private func", "func", 1)
+event_start = helper.index("    private func handleKeyEvent(")
+event_method = helper[event_start:start].replace("private func", "func", 1)
 harness = r'''
 import AppKit
 
@@ -92,8 +98,55 @@ precondition(collection.selectionIndexPaths == [IndexPath(item: 0, section: 0)])
 overview.reset()
 provider.finish()
 print("ページ一覧テスト: 配置・単クリック・Esc・世代切替・同時読込上限に成功")
+
+// 非表示時はホスト用の背景だけを残し、子ビューは高さに頼らず隠す。
+let strip = ThumbnailStripView(frame: NSRect(x: 0, y: 0, width: 750, height: 88))
+window.contentView = strip
+strip.configure(itemCount: 300)
+strip.setContentVisible(true)
+settle(window)
+let stripScroll = descendants(strip).compactMap { $0 as? NSScrollView }.first!
+precondition(!stripScroll.isHidden)
+strip.setContentVisible(false)
+strip.setFrameSize(NSSize(width: 750, height: 6))
+precondition(!strip.isHidden && strip.layer?.masksToBounds == true)
+precondition(stripScroll.isHidden && strip.collectionView.isHiddenOrHasHiddenAncestor)
+precondition(strip.subviews.allSatisfy { $0.isHidden })
+strip.setContentVisible(true)
+strip.setFrameSize(NSSize(width: 750, height: 88))
+settle(window)
+precondition(!stripScroll.isHidden)
+precondition(strip.collectionView.numberOfItems(inSection: 0) == 300)
+print("サムネイル非表示テスト: 子ビューの完全非表示と再表示に成功")
 '''
-harness += "\nfinal class Routing {\nvar isPageOverviewVisible = false\n" + routing_method + r'''
+harness += r'''
+// イベントタップの入口を実行する。本体の書庫ウィンドウもAX判定では一致する条件を再現する。
+final class TestApplication { var bundleIdentifier = "com.dmng.CoverZip" }
+final class NSWorkspace {
+    static let shared = NSWorkspace()
+    var frontmostApplication: TestApplication? = TestApplication()
+}
+enum CZUserDefaults {
+    static let name = "CoverZip-key-routing-test-" + UUID().uuidString
+    static let shared = UserDefaults(suiteName: name)!
+}
+final class Routing {
+    var isPageOverviewVisible = false
+    var isAccessibilityTrusted = true
+    var visibleUntil: Date? = Date().addingTimeInterval(30)
+    var axChecks = 0
+    var posted: [CZPreviewSessionCommand] = []
+    func isKeyHelperEnabledForRuntime() -> Bool { true }
+    func rejectKeyEvent(reason: String, keyCode: Int64? = nil) -> Bool { false }
+    func clearActiveSession() { visibleUntil = nil }
+    func isFrontmostQuickLookWindowVisible() -> Bool { axChecks += 1; return true }
+    func postCommand(_ command: CZPreviewSessionCommand, commandID: String, intValue: Int? = nil) { posted.append(command) }
+''' + eligibility_method + capture_method + event_method + routing_method + r'''
+}
+precondition(Routing.supportsFrontmostBundle("com.apple.finder"))
+precondition(Routing.supportsFrontmostBundle("com.apple.quicklook.QuickLookUIService"))
+for identifier in ["com.dmng.CoverZip", "com.apple.TextEdit", "com.openai.codex", "unknown"] {
+    precondition(!Routing.supportsFrontmostBundle(identifier))
 }
 let routing = Routing()
 let escapeCG = CGEvent(keyboardEventSource: nil, virtualKey: 53, keyDown: true)!
@@ -108,7 +161,15 @@ gKey.flags = []
 precondition(routing.commandForKeyEvent(gKey)?.command == .togglePageOverview)
 gKey.flags = .maskCommand
 precondition(routing.commandForKeyEvent(gKey) == nil)
-print("Finderキー転送テスト: G・一覧中のEsc・通常時のEsc通過に成功")
+gKey.flags = []
+precondition(routing.handleKeyEvent(gKey) != nil)
+precondition(routing.axChecks == 0 && routing.posted.isEmpty)
+NSWorkspace.shared.frontmostApplication?.bundleIdentifier = "com.apple.finder"
+precondition(routing.handleKeyEvent(gKey) == nil)
+RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+precondition(routing.axChecks == 1 && routing.posted == [.togglePageOverview])
+CZUserDefaults.shared.removePersistentDomain(forName: CZUserDefaults.name)
+print("Finderキー転送テスト: 本体・他アプリの除外、G・Escの振り分けに成功")
 '''
 
 env = dict(os.environ)
@@ -120,6 +181,8 @@ with tempfile.TemporaryDirectory(prefix="coverzip-overview-") as directory:
     executable = directory / "check"
     subprocess.run(["xcrun", "swiftc", str(root / "Shared/SettingsKeys.swift"),
                     str(root / "coverZipViewer/PageOverviewView.swift"),
+                    str(root / "coverZipViewer/ThumbnailStripView.swift"),
+                    str(root / "coverZipViewer/ThumbnailCollectionViewItem.swift"),
                     str(directory / "Protocol.swift"), str(directory / "main.swift"),
                     "-o", str(executable)], env=env, check=True)
     subprocess.run([str(executable)], env=env, check=True)

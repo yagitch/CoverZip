@@ -316,6 +316,8 @@ enum QLPreviewInputDriver {
         private var hideWork: DispatchWorkItem?
         private var activityMonitor: Any?
         private var pageText = ""
+        private var isThumbnailStripVisible = false
+        private var isPageOverviewVisible = false
         var sessionID: String?
         var current = 0
         var total = 0
@@ -350,6 +352,8 @@ enum QLPreviewInputDriver {
                 self.current = total > 0 ? current : 0
                 self.total = total
                 self.pageText = info["pages"] as? String ?? String(current)
+                self.isThumbnailStripVisible = info[CZSettingsKeys.thumbnailStripVisible] as? Bool ?? false
+                self.isPageOverviewVisible = info[CZPreviewVisibilityUserInfoKeys.pageOverviewVisible] as? Bool ?? false
                 self.bar.isRightToLeft = info["rtl"] as? Bool ?? true
                 self.refresh()
             }
@@ -377,7 +381,8 @@ enum QLPreviewInputDriver {
 
         private func showTemporarily() {
             hideWork?.cancel()
-            guard CZSettings.shared.showViewerPageStatus, total > 0 else {
+            guard CZSettings.shared.showViewerPageStatus, total > 0,
+                  isThumbnailStripVisible, !isPageOverviewVisible else {
                 bar.isHidden = true
                 return
             }

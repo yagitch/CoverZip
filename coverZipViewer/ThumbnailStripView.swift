@@ -151,6 +151,7 @@ class ThumbnailStripView: NSView {
     private let visibleRangeBuffer = 8
     private var pendingVisibilityIndexPaths: Set<IndexPath> = []
     private let baseHorizontalSectionInset: CGFloat = 8
+    private var isContentVisible = true
 
     /// プログラム側からの選択変更中はコールバックを抑制する
     private var isUpdatingSelectionProgrammatically = false
@@ -175,6 +176,7 @@ class ThumbnailStripView: NSView {
 
     private func setupViews() {
         wantsLayer = true
+        layer?.masksToBounds = true
         layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
 
         // NSCollectionViewFlowLayout（横並び）
@@ -238,6 +240,7 @@ class ThumbnailStripView: NSView {
 
     override func layout() {
         super.layout()
+        guard isContentVisible else { return }
         updateCollectionViewItemSize()
         applyPendingSelectionVisibility(retriesLeft: 0)
         refreshVisibleThumbnails()
@@ -298,6 +301,19 @@ class ThumbnailStripView: NSView {
     }
 
     // MARK: - 公開メソッド
+
+    /// ホスト向けの可視アンカーを残し、サムネイル・スクロールバー・ハンドルは完全に隠す。
+    func setContentVisible(_ visible: Bool) {
+        isContentVisible = visible
+        scrollView.isHidden = !visible
+        resizeHandle.isHidden = !visible
+        if visible {
+            needsLayout = true
+        } else {
+            generation += 1
+            visibleDisplayIndexRange = 0..<0
+        }
+    }
 
     /// 表示対象の件数を設定し、サムネイルの非同期読み込みを開始する
     func configure(itemCount: Int) {
@@ -361,6 +377,7 @@ class ThumbnailStripView: NSView {
     // MARK: - サムネイル読み込み
 
     private func loadThumbnail(at realIdx: Int) {
+        guard isContentVisible else { return }
         guard realIdx < itemCount else { return }
 
         // アイテム高さと画面スケールからサムネイル解像度を決定（Retina対応）
@@ -389,6 +406,7 @@ class ThumbnailStripView: NSView {
 
     /// 可視セルのうちサムネイル未取得・サイズ不一致のものを再デコードする
     private func refreshVisibleThumbnails() {
+        guard isContentVisible else { return }
         updateVisibleDisplayIndexRange()
         for indexPath in collectionView.indexPathsForVisibleItems() {
             loadThumbnail(at: realIndex(for: indexPath.item))

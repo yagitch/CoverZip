@@ -361,12 +361,21 @@ final class KeyHelperController: NSObject {
         CZUserDefaults.shared.object(forKey: CZSettingsKeys.isKeyHelperEnabled) as? Bool ?? true
     }
 
+    static func supportsFrontmostBundle(_ identifier: String) -> Bool {
+        identifier == "com.apple.finder" || identifier == "com.apple.quicklook.QuickLookUIService"
+    }
+
     private func shouldCaptureKeyEvent(keyCode: Int64, command: CZPreviewSessionCommand) -> Bool {
         let now = Date().timeIntervalSince1970
         let frontmostBundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown"
         CZUserDefaults.shared.set(now, forKey: CZSettingsKeys.keyHelperLastKeyAt)
         CZUserDefaults.shared.set(Int(keyCode), forKey: CZSettingsKeys.keyHelperLastKeyCode)
         CZUserDefaults.shared.set(frontmostBundleID, forKey: CZSettingsKeys.keyHelperLastFrontmostBundleID)
+
+        // 本体の書庫名付きウィンドウをQuick Lookと誤判定してキーを奪わない。
+        guard Self.supportsFrontmostBundle(frontmostBundleID) else {
+            return rejectKeyEvent(reason: "not Finder QuickLook", keyCode: keyCode)
+        }
 
         guard isKeyHelperEnabledForRuntime() else {
             return rejectKeyEvent(reason: "helper disabled", keyCode: keyCode)

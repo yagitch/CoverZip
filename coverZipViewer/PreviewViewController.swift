@@ -245,14 +245,16 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         CZUserDefaults.shared.set(name.rawValue, forKey: CZSettingsKeys.previewLastVisibilityPostName)
         CZUserDefaults.shared.set(previewVisibilitySessionID, forKey: CZSettingsKeys.previewLastVisibilitySessionID)
         // Darwin 通知: NSDistributedNotificationCenter・App Group が届かない QL sandbox でも動作する
-        let darwinName = (name == CZDistributedNotifications.previewExtensionVisible)
-            ? CZDarwinNotifications.qlVisible
-            : CZDarwinNotifications.qlHidden
-        CFNotificationCenterPostNotification(
-            CFNotificationCenterGetDarwinNotifyCenter(),
-            CFNotificationName(darwinName as CFString),
-            nil, nil, true
-        )
+        if !isNativeViewer {
+            let darwinName = (name == CZDistributedNotifications.previewExtensionVisible)
+                ? CZDarwinNotifications.qlVisible
+                : CZDarwinNotifications.qlHidden
+            CFNotificationCenterPostNotification(
+                CFNotificationCenterGetDarwinNotifyCenter(),
+                CFNotificationName(darwinName as CFString),
+                nil, nil, true
+            )
+        }
         DistributedNotificationCenter.default().postNotificationName(
             name,
             object: nil,
@@ -1403,6 +1405,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         pageOverviewView?.show(itemCount: imageManager.getImageCount(), currentIndex: imageManager.currentPageIndex, isRightToLeft: isRightToLeftReading)
         NSCursor.arrow.set()
         updateContextMenuStates()
+        updatePageLabel()
         postPreviewVisibilityNotification(CZDistributedNotifications.previewExtensionVisible)
     }
 
@@ -1414,6 +1417,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         if resumeSlideshow, resumeSlideshowAfterOverview { startSlideshow() }
         resumeSlideshowAfterOverview = false
         updateContextMenuStates()
+        updatePageLabel()
         postPreviewVisibilityNotification(CZDistributedNotifications.previewExtensionVisible)
         if restoreFocus {
             thumbnailStripView?.focusCollectionView()
@@ -1476,6 +1480,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         if isVisible {
             let resolvedHeight = max(Self.minimumVisibleThumbnailStripHeight, lastVisibleThumbnailStripHeight)
             heightConstraint.constant = resolvedHeight
+            strip.setContentVisible(true)
             strip.isHidden = false
             strip.alphaValue = 1
         } else {
@@ -1490,6 +1495,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
             // 制約（scrollViewの負の高さ）を要求してしまうため、ハンドルの高さちょうどに合わせて
             // scrollView側の高さを0にする。
             heightConstraint.constant = Self.collapsedThumbnailStripHeight
+            strip.setContentVisible(false)
             strip.isHidden = false
             strip.alphaValue = 1
         }
@@ -1497,6 +1503,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         view.needsLayout = true
         view.layoutSubtreeIfNeeded()
         updateContextMenuStates()
+        updatePageLabel()
     }
 
     private func setupDistributedNotificationObserversIfNeeded() {
@@ -2796,7 +2803,9 @@ class PreviewViewController: NSViewController, QLPreviewingController {
               let data = try? JSONSerialization.data(withJSONObject: [
                 "path": path, "session": previewVisibilitySessionID,
                 "current": currentPage, "total": totalPages, "rtl": isRightToLeftReading,
-                "pages": displayedPages
+                "pages": displayedPages,
+                CZSettingsKeys.thumbnailStripVisible: isThumbnailStripVisible,
+                CZPreviewVisibilityUserInfoKeys.pageOverviewVisible: isPageOverviewVisible
               ]), let payload = String(data: data, encoding: .utf8) else { return }
         // サンドボックス内からはuserInfoを使わず、文字列のobjectで状態を渡す。
         DistributedNotificationCenter.default().postNotificationName(
