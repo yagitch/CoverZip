@@ -81,6 +81,8 @@
 - ライセンス/ヘッダの追加は指示がある場合のみ。
 
 ## ビルド・動作の目安
+- ローカルのビルド更新・導入は `bash tools/build_coverzip.sh <ビルド番号>` を使う。署名照合・旧版ZIP保管・導入・ビルド出力のZIP保管・Finder登録照合までを一続きで行う。
+- 本体のバックアップを裸の `.app` のまま残さない。Finderが再検出するため、必ず検証済みZIPとして保管する。直接Xcodeでビルド・検証した場合も、終了前に `python3 tools/app_install.py --apply` で出力を整理する（実行中のビルド出力は先に終了する）。登録は `/Applications/CoverZip.app` の1件だけになったことを確認する。
 - Xcode 14+（macOS 13+ 推奨）。Targets: `CoverZip`, `coverZipViewer`, `coverZipExtension`。
 - App/Extensions の Entitlements に同一 App Group を設定。
 - 初回起動時、`CoverZip` はルーティング設定が空の場合にサンプル値を UserDefaults へ投入する。

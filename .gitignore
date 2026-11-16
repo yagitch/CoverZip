@@ -5,6 +5,7 @@
 */xcuserdata/*
 xcuserdata/
 DerivedData/
+__pycache__/
 docs/
 handoff.md
 DevelopmentTeam.local.xcconfig

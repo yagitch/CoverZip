@@ -177,18 +177,24 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
-導入先は `/Applications/CoverZip.app`、改修版のビルド番号は50です。
+導入先は `/Applications/CoverZip.app` です。
 公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
 署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
 登録し直します。Karabinerの設定変更は不要です。
 
 ```sh
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
-  -project CoverZip.xcodeproj -scheme CoverZip -configuration Release \
-  -derivedDataPath .build-local build DEVELOPMENT_TEAM=6KCX8JYZB7 \
-  CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Development' \
-  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=50
+bash tools/build_coverzip.sh 52
 ```
+
+数字には今回のビルド番号を指定し、本体を終了してから実行します。署名チームの照合後、
+旧版をZIPで退避して導入します。バックアップとDebug／Releaseのビルド出力も、内容と
+シンボリックリンクを照合したZIPに保管し、裸の `.app` は残しません。
+保管先は `.local-backup/app-archives/`。最後にFinderの登録が導入先1件だけか確認します。
+有効な既存のKeyHelperログイン項目は再起動し、権限や有効設定は変更しません。
+
+Xcodeから直接ビルドした場合は、検証用アプリを終了してから
+`python3 tools/app_install.py --apply` を実行します。`--apply` を省略すると対象表示だけです。
+ビルドが失敗した場合や導入を中断した場合も、この整理を行ってから作業を終えます。
 
 境界条件のテスト: `python3 tests/check_page_navigation.py`
 これは実装メソッドをSwiftで実行する単体検証です。アプリのビルド、署名、

@@ -102,6 +102,11 @@ Xcode 16 の同期フォルダ方式（`PBXFileSystemSynchronizedRootGroup`）�
 ## ビルドと開発
 
 ### ビルド方法
+
+このフォークの通常の更新・導入には `bash tools/build_coverzip.sh <ビルド番号>` を使う。
+旧版とビルド出力は検証済みZIPに保管し、Finderへの登録を導入先1件に整理する。
+下記の直接ビルドやXcodeでの検証を使った場合も、検証用アプリを終了してから
+`python3 tools/app_install.py --apply` を実行する。裸のバックアップ `.app` を残さない。
 ```bash
 # Xcodeでプロジェクトを開く
 open CoverZip.xcodeproj
