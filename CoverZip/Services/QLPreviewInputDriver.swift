@@ -458,7 +458,7 @@ enum QLPreviewInputDriver {
                 if isCmd {
                     PreviewSessionCommandDispatcher.post(command: isLeft ? .goToLeftArrowEdgePage : .goToRightArrowEdgePage)
                 } else if isShift {
-                    PreviewSessionCommandDispatcher.post(command: isLeft ? .jumpLeftArrowPages : .jumpRightArrowPages, intValue: 10)
+                    PreviewSessionCommandDispatcher.post(command: isLeft ? .jumpLeftArrowPages : .jumpRightArrowPages)
                 } else {
                     PreviewSessionCommandDispatcher.post(command: isLeft ? .goLeftArrowPage : .goRightArrowPage)
                 }

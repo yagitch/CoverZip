@@ -781,11 +781,11 @@ final class KeyHelperController: NSObject {
             return (.setSlideshowEnabled, nil)
         case 123:
             if isCommand { return (.goToLeftArrowEdgePage, nil) }
-            if isShift { return (.jumpLeftArrowPages, 10) }
+            if isShift { return (.jumpLeftArrowPages, nil) }
             return (.goLeftArrowPage, nil)
         case 124:
             if isCommand { return (.goToRightArrowEdgePage, nil) }
-            if isShift { return (.jumpRightArrowPages, 10) }
+            if isShift { return (.jumpRightArrowPages, nil) }
             return (.goRightArrowPage, nil)
         case 125:
             return (.goForwardPage, nil)

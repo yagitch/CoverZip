@@ -42,6 +42,14 @@ for flag: NSEvent.ModifierFlags in [.command, .control, .option] {
 }
 precondition(ViewerWindow.overviewCommand(for: key(5, "g", type: .keyUp)) == nil)
 precondition(ViewerWindow.overviewCommand(for: key(123, "")) == nil)
+precondition(ViewerWindow.shiftedArrowCommand(for: key(123, "", flags: .shift)) == .jumpLeftArrowPages)
+precondition(ViewerWindow.shiftedArrowCommand(for: key(124, "", flags: .shift)) == .jumpRightArrowPages)
+precondition(ViewerWindow.shiftedArrowCommand(for: key(123, "", flags: [.shift, .command])) == nil)
+let beforeShift = PreviewSessionCommandDispatcher.commands.count
+window.sendEvent(key(123, "", flags: .shift))
+window.sendEvent(key(124, "", flags: .shift, repeatKey: true))
+precondition(PreviewSessionCommandDispatcher.commands.count == beforeShift + 2)
+precondition(PreviewSessionCommandDispatcher.commands.suffix(2) == [.jumpLeftArrowPages, .jumpRightArrowPages])
 print("本体キー入力テスト: フォーカス移動・日本語入力・Esc・長押し・修飾キーに成功")
 '''
 env = dict(os.environ)

@@ -1194,6 +1194,19 @@ extension ImageManager {
         currentIndex + 1
     }
 
+    /// 見開きの先頭を1ページずらし、通常のページ送りでもその組み合わせを維持する。
+    func shiftSpreadOnePage(forward: Bool) -> Bool {
+        guard imageEntryCount > 1,
+              let pair = resolveSpreadPairIndices(baseIndex: currentIndex, isRightToLeft: false),
+              let first = [pair.left, pair.right].compactMap({ $0 }).min() else { return false }
+        let target = max(0, min(first + (forward ? 1 : -1), imageEntryCount - 1))
+        guard target != first else { return false }
+        currentIndex = target
+        // 単にcurrentIndexを変えるだけでは同じペアへ丸められるため、組み合わせの偶奇も揃える。
+        spreadPairOffset = target == 0 ? 0 : (target + 1) % 2
+        return true
+    }
+
     /// 指定ページへ移動（1始まり）
     func goToPage(_ page: Int) -> Bool {
         guard imageEntryCount > 0 else { return false }

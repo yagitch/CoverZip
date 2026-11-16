@@ -41,6 +41,7 @@
 - キー入力処理は `KeyForwardingView`（First Responder 専用の薄いビュー）で受け取り、`CZPreviewSessionCommand`（`goForwardPage` / `goBackwardPage`）を分散通知で送信してページ送りを駆動（正式: `QLPreviewInputDriver`）。
 - `QLPreviewView` 自体を First Responder にしない（クローズ時の解放競合を回避）。
 - 本体のG/Escは `ViewerWindow.sendEvent` でResponderへの配信前に受け取る。サムネイル等へのフォーカス移動や日本語入力中も一覧を操作できるよう、メニューの文字ショートカットだけに依存しない。
+- Shift+左右キーも本体は `ViewerWindow`、FinderはKeyHelperで受け取る。見開き中は表示ペアの先頭を1ページずらし、組み合わせの偶奇も更新する。通常の左右キーは2ページ送り、見開き以外のShift+左右とPage Up/Downは10ページ移動を維持する。
 - Finder用KeyHelperはFinder／QuickLookUIServiceだけを対象にし、本体のキーを捕捉しない。実キーボード経路は本体の直接キー送信テストだけでは検証できない。
 - 本体の細いページ位置バーは、プレビューから通知されるセッション中のサムネイル表示状態に合わせる。サムネイル非表示中・ページ一覧中は、マウスやキーの操作でも再表示しない（タイトルのページ番号は維持する）。
 - クローズ時は OS の標準解放順序（`shouldCloseWithWindow = true`）に委ね、独自のビュー破棄は行わない。

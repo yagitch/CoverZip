@@ -5,12 +5,13 @@
 from pathlib import Path
 import subprocess
 import tempfile
+import re
 
 source = (Path(__file__).resolve().parents[1] / "coverZipViewer/ImageManager.swift").read_text()
 
 
 def method(name):
-    start = source.index("    func " + name + "(")
+    start = re.search(r"    (?:private )?func " + re.escape(name) + r"\(", source).start()
     opening = source.index("{", start)
     depth = 1
     end = opening + 1
@@ -28,8 +29,9 @@ final class CZSettings {
 final class Paging {
     var imageEntryCount: Int
     var currentIndex: Int = 0
+    var spreadPairOffset = 0
     init(_ count: Int) { imageEntryCount = count }
-""" + method("nextImage") + "\n" + method("previousImage") + """
+""" + '\n'.join(method(name) for name in ['nextImage', 'previousImage', 'shiftSpreadOnePage', 'getCurrentSpreadPairIndices', 'resolveSpreadPairIndices']) + """
 }
 
 func check(_ count: Int, _ spread: Bool, _ expected: [Int]) {
@@ -87,6 +89,46 @@ for count in 2...8 {
     }
 }
 print("ページ送り回帰テスト: 成功")
+
+func pair(_ paging: Paging, _ rtl: Bool) -> [Int] {
+    let indices = paging.getCurrentSpreadPairIndices(isRightToLeft: rtl)
+    return [indices.left, indices.right].compactMap { $0 }.sorted()
+}
+for rtl in [false, true] {
+    let paging = Paging(8)
+    paging.currentIndex = 1
+    precondition(pair(paging, rtl) == [1, 2])
+    precondition(paging.shiftSpreadOnePage(forward: true))
+    precondition(pair(paging, rtl) == [2, 3])
+    precondition(paging.nextImage(isSpreadMode: true))
+    precondition(pair(paging, rtl) == [4, 5])
+    precondition(paging.shiftSpreadOnePage(forward: false))
+    precondition(pair(paging, rtl) == [3, 4])
+    precondition(paging.shiftSpreadOnePage(forward: false))
+    precondition(pair(paging, rtl) == [2, 3])
+    // ペアの後半ページを基準に開いた場合も、表示中のペアから1ページだけ動く。
+    paging.currentIndex = 2
+    paging.spreadPairOffset = 0
+    precondition(paging.shiftSpreadOnePage(forward: true))
+    precondition(pair(paging, rtl) == [2, 3])
+    paging.currentIndex = 1
+    paging.spreadPairOffset = 0
+    precondition(paging.shiftSpreadOnePage(forward: false))
+    precondition(pair(paging, rtl) == [0])
+    precondition(!paging.shiftSpreadOnePage(forward: false))
+    paging.currentIndex = 6
+    paging.spreadPairOffset = 1
+    precondition(pair(paging, rtl) == [6, 7])
+    precondition(paging.shiftSpreadOnePage(forward: true))
+    precondition(pair(paging, rtl) == [7])
+    precondition(!paging.shiftSpreadOnePage(forward: true))
+}
+for count in 0...1 {
+    let paging = Paging(count)
+    precondition(!paging.shiftSpreadOnePage(forward: true))
+    precondition(!paging.shiftSpreadOnePage(forward: false))
+}
+print("見開き1ページ移動テスト: 両綴じ方向・連続移動・先頭末尾に成功")
 """
 
 with tempfile.TemporaryDirectory(prefix="coverzip-paging-") as directory:

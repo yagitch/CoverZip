@@ -106,8 +106,8 @@ public enum CZPreviewSessionCommand: String {
     case goBackwardPage  // 読書順で「前」（論理方向）
     case goLeftArrowPage   // 物理左キー。受信側の現在の読み方向で前後を決める
     case goRightArrowPage  // 物理右キー。受信側の現在の読み方向で前後を決める
-    case jumpLeftArrowPages  // 物理左キー。受信側の現在の読み方向で相対ジャンプ方向を決める
-    case jumpRightArrowPages // 物理右キー。受信側の現在の読み方向で相対ジャンプ方向を決める
+    case jumpLeftArrowPages  // Shift+物理左キー。量の指定なしなら見開き中は1ページ分ずらし、それ以外は10ページ移動
+    case jumpRightArrowPages // Shift+物理右キー。同上。方向は受信側の読み方向で決める
     case goToLeftArrowEdgePage  // 物理左キー。受信側の現在の読み方向で先頭/末尾を決める
     case goToRightArrowEdgePage // 物理右キー。受信側の現在の読み方向で先頭/末尾を決める
     case jumpRelativePages  // intValue に相対量（正=前進、負=後退）

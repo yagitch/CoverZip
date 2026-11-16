@@ -162,6 +162,12 @@ precondition(routing.commandForKeyEvent(gKey)?.command == .togglePageOverview)
 gKey.flags = .maskCommand
 precondition(routing.commandForKeyEvent(gKey) == nil)
 gKey.flags = []
+for (code, command): (CGKeyCode, CZPreviewSessionCommand) in [(123, .jumpLeftArrowPages), (124, .jumpRightArrowPages)] {
+    let arrow = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: true)!
+    arrow.flags = .maskShift
+    precondition(routing.commandForKeyEvent(arrow)?.command == command)
+    precondition(routing.commandForKeyEvent(arrow)?.intValue == nil)
+}
 precondition(routing.handleKeyEvent(gKey) != nil)
 precondition(routing.axChecks == 0 && routing.posted.isEmpty)
 NSWorkspace.shared.frontmostApplication?.bundleIdentifier = "com.apple.finder"

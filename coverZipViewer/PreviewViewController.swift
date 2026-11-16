@@ -505,6 +505,12 @@ class PreviewViewController: NSViewController, QLPreviewingController {
                 return nil
             }
             guard let specialKey = event.specialKey else { return event }
+            if (specialKey == .leftArrow || specialKey == .rightArrow),
+               event.modifierFlags.contains(.shift),
+               event.modifierFlags.intersection([.command, .control, .option]).isEmpty {
+                self.jumpArrowPages(isLeftArrow: specialKey == .leftArrow, userInfo: [:])
+                return nil
+            }
             if self.isThumbnailStripFirstResponderActive() {
                 return event
             }
@@ -1652,8 +1658,16 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     }
 
     private func jumpArrowPages(isLeftArrow: Bool, userInfo: [AnyHashable: Any]) {
-        let pageCount = userInfo[CZPreviewSessionCommandUserInfoKeys.intValue] as? Int ?? 10
         let isForward = isLeftArrow == isRightToLeftReading
+        let requestedCount = userInfo[CZPreviewSessionCommandUserInfoKeys.intValue] as? Int
+        if requestedCount == nil, currentViewMode == .spread {
+            if imageManager.shiftSpreadOnePage(forward: isForward) {
+                moveToPageFromThumbnail(imageManager.getCurrentPageNumber())
+                updateContextMenuStates()
+            }
+            return
+        }
+        let pageCount = requestedCount ?? 10
         jumpRelativePages(isForward ? pageCount : -pageCount)
     }
 
