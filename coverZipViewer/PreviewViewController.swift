@@ -28,6 +28,10 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     private var pageStatusFilePath: String?
     private let autoColorizer = AutoColorizer()
     private let aiColorizer = AIColorizerClient()
+    private let aiDiagnosticClient = AIColorizerClient()
+    private let aiDiagnosticSlot = NSObject()
+    private var aiStatusLabel: NSTextField?
+    private var aiDiagnosticRequestID: String?
     private var isNativeViewer = false
     private var mouseMonitors: [Any] = []
     private var isHandlingPassThroughControlInteraction = false
@@ -705,6 +709,9 @@ class PreviewViewController: NSViewController, QLPreviewingController {
 
     func preparePreviewOfFile(at url: URL) async throws {
         aiColorizer.cancelAll()
+        aiDiagnosticRequestID = nil
+        aiDiagnosticClient.cancelAll()
+        aiStatusLabel?.isHidden = true
         isNativeViewer = url.fragment == "coverzip-native-viewer"
         os_log("Colorize native viewer=%{public}d", log: performanceLog, type: .info, isNativeViewer ? 1 : 0)
         NSLog("[DEBUG] preparePreviewOfFile called for: %@", url.lastPathComponent)
@@ -1412,6 +1419,9 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     private func setupDistributedNotificationObserversIfNeeded() {
         guard !hasSetupDistributedNotificationObservers else { return }
         let center = DistributedNotificationCenter.default()
+        center.addObserver(self, selector: #selector(handleAIDiagnostic(_:)),
+                           name: CZAIPlugin.diagnosticRequest, object: nil,
+                           suspensionBehavior: .deliverImmediately)
         center.addObserver(
             self,
             selector: #selector(handleSettingsChangedNotification(_:)),
@@ -1432,6 +1442,9 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     private func teardownDistributedNotificationObservers() {
         guard hasSetupDistributedNotificationObservers else { return }
         let center = DistributedNotificationCenter.default()
+        center.removeObserver(self, name: CZAIPlugin.diagnosticRequest, object: nil)
+        aiDiagnosticRequestID = nil
+        aiDiagnosticClient.cancelAll()
         center.removeObserver(self, name: CZDistributedNotifications.settingsChanged, object: nil)
         center.removeObserver(self, name: CZDistributedNotifications.previewSessionCommand, object: nil)
         hasSetupDistributedNotificationObservers = false
@@ -2230,15 +2243,60 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         // 拡張のウインドウはホストの外枠ではない。本体とKeyHelperが保存する。
     }
 
+    private func showAIStatus(_ text: String) {
+        guard isNativeViewer else { aiStatusLabel?.isHidden = true; return }
+        if aiStatusLabel == nil {
+            let label = NSTextField(labelWithString: "")
+            label.font = .systemFont(ofSize: 11)
+            label.textColor = .white
+            label.backgroundColor = NSColor.black.withAlphaComponent(0.8)
+            label.drawsBackground = true
+            label.lineBreakMode = .byTruncatingTail
+            label.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(label)
+            NSLayoutConstraint.activate([
+                label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
+                label.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -18),
+                label.widthAnchor.constraint(lessThanOrEqualTo: view.widthAnchor, constant: -24)
+            ])
+            aiStatusLabel = label
+        }
+        aiStatusLabel?.stringValue = text
+        aiStatusLabel?.isHidden = text.isEmpty
+    }
+
+    @objc private func handleAIDiagnostic(_ notification: Notification) {
+        guard isNativeViewer, let request = notification.object as? String,
+              UUID(uuidString: request) != nil else { return }
+        aiDiagnosticRequestID = request
+        // ページ画像・ファイル名を使わず、実際の拡張プロセスで推論する。
+        guard let context = CGContext(data: nil, width: 256, height: 256, bitsPerComponent: 8,
+                                      bytesPerRow: 1024, space: CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return }
+        context.setFillColor(CGColor(gray: 0.6, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 256, height: 256))
+        guard let image = context.makeImage() else { return }
+        aiDiagnosticClient.render(image, slot: aiDiagnosticSlot, includeColorOverride: true, status: { [weak self] text in
+            guard let self, self.aiDiagnosticRequestID == request, self.isNativeViewer else { return }
+            guard let data = try? JSONSerialization.data(withJSONObject: [
+                "request": request, "session": self.previewVisibilitySessionID, "status": text
+            ]), let payload = String(data: data, encoding: .utf8) else { return }
+            // プレビュー拡張からは既存のページ状態通知と同じobject経路を使う。
+            DistributedNotificationCenter.default().postNotificationName(
+                CZAIPlugin.diagnosticResult, object: payload, userInfo: nil, deliverImmediately: true)
+        }, completion: { _ in })
+    }
+
     private func setImageSafely(_ image: NSImage?, toImageView imageView: NSImageView?) {
         guard let iv = imageView else { return }
         // スケーリングのみ固定。アラインメントはモード切替で設定したものを維持する
         iv.imageScaling = .scaleProportionallyUpOrDown
         aiColorizer.cancel(slot: iv)
         let useAI = isNativeViewer && CZSettings.shared.aiColorizeEnabled
+        if isNativeViewer && !useAI { showAIStatus("") }
         iv.image = isNativeViewer && !useAI ? autoColorizer.image(image) : image
         if useAI, let source = image?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
-            aiColorizer.render(source, slot: iv) { [weak iv] result in
+            aiColorizer.render(source, slot: iv, status: { [weak self] in self?.showAIStatus($0) }) { [weak iv] result in
                 iv?.image = NSImage(cgImage: result, size: image?.size ?? .zero)
             }
         }
@@ -2277,7 +2335,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         displayLayer.contents = isNativeViewer && !useAI ? autoColorizer.apply(source) : source
         if useAI {
             // 同じ表示枠の低品質フォールバック処理を置き換える。
-            aiColorizer.render(source, slot: imageView) { [weak displayLayer] result in
+            aiColorizer.render(source, slot: imageView, status: { [weak self] in self?.showAIStatus($0) }) { [weak displayLayer] result in
                 displayLayer?.contents = result
             }
         }

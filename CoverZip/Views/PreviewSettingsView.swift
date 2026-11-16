@@ -46,6 +46,10 @@ struct PreviewSettingsView: View {
                     Button("配色をリセット") { settings.autoColorizePalette = CZSettings.defaultColorizePalette }
                 }.disabled(!settings.autoColorizeEnabled)
                 Toggle("AI自動着色（プラグイン）", isOn: $settings.aiColorizeEnabled)
+                Text(settings.aiColorizeEnabled ? "AI着色はオンです。処理状態は本体のビューアに表示します。" : "AI着色はオフです。着色するにはオンにしてください。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Button("AI着色の動作確認") { settings.checkAIColorizer() }
+                Text(settings.aiDiagnosticText).font(.caption).textSelection(.enabled)
                 Button("色合い調整HUDを開く…") { ColorAdjustmentHUD.shared.show() }
                 Picker("AIモデル", selection: $settings.aiColorizeModel) {
                     Text("高速モデル").tag("fast")
@@ -62,7 +66,7 @@ struct PreviewSettingsView: View {
                 }
                 Button("AIプラグインのフォルダを開く") {
                     guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: CZAppGroup.identifier) else { return }
-                    let folder = root.appendingPathComponent("Library/Application Support/CoverZip/PlugIns")
+                    let folder = root.appendingPathComponent(CZAIPlugin.relativePath).deletingLastPathComponent()
                     do {
                         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
                         NSWorkspace.shared.open(folder)

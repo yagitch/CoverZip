@@ -1,5 +1,28 @@
 # AI自動着色プラグイン
 
+## peterの現行構成への対応（ビルド50）
+
+macOS 27.2.1 / arm64、Xcode 27.2で確認した。AI設定がオフなら着色されない。
+設定画面にオン／オフの説明を追加し、本体のビューアには準備・処理中、完了、
+カラー画像の除外、プラグイン不在・読込失敗・推論失敗の状態を表示する。
+「AI着色の動作確認」は、開いている本体のプレビュー拡張内で合成画像を処理する。
+ページ画像・ファイル名は通知に含めず、要求IDと拡張セッションIDで結果を区別する。
+Finderのプレビューはこの確認に応答しない。応答がない場合は45秒後に案内を表示する。
+
+今回の調査では、既存プラグインの両モデルが単体で動作し、設定をオンにすると
+本体でも漫画用の着色を表示できた。URL fragmentによる本体判定の変更と、
+CPUへの再試行は必要と確認されなかったため追加していない。
+
+ビルドスクリプトはXcode.appを明示し、署名証明書のSHA-1を
+`COVERZIP_SIGN_IDENTITY` に要求する。署名後にチームIDも照合する。
+漫画版のONNX Runtime 1.31.0に合わせ、漫画版プラグインの最低OSはmacOS 14。
+高速版はmacOS 13を指定する。peter向けの生成物はarm64で、本体のuniversal構成とは異なる。
+漫画版はモデル・ランタイムの固定ハッシュを照合し、入力ハッシュの記録も同梱する。
+
+導入ツールは共有定義を使用し、署名・チーム・配置前後のバンドルを検証してから置換する。
+既存プラグインはUUID付きbackupとして残す。コピー・配置前検証に失敗した場合は旧版を維持する。
+ローカル導入ツールにはサンドボックス権限を付けない。実ビューアの動作検証は別途必要。
+
 **現在の仕様（ビルド48／プラグインv5）**: 顔限定の補正を廃止し、漫画用generatorの出力全体へ
 同じRGB係数をかける。顔・胴体・手足・服・背景を区別しない。HUDの「色合い補正」で強さを変更する。
 係数は `1 + (指定RGB / 既定RGB - 1) × 強さ`。既定RGBが中立、強さ0でも無補正。
@@ -71,11 +94,12 @@ Finder Quick Lookではどちらも実行しない。
 
 ```sh
 export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+# security find-identity -v -p codesigning で本体と同じ証明書を選ぶ。
+export COVERZIP_SIGN_IDENTITY='<署名証明書のSHA-1>'
 bash plugins/AIColorizer/build.sh \
   .local-backup/20261019/colorization-research .local-backup/20261019/ai-plugin
-xcrun swiftc plugins/AIColorizer/install.swift -o .local-backup/install-ai-plugin
-codesign --force --sign 'Apple Development' \
-  --entitlements CoverZip/CoverZip.entitlements .local-backup/install-ai-plugin
+xcrun swiftc Shared/SettingsKeys.swift plugins/AIColorizer/install.swift -o .local-backup/install-ai-plugin
+codesign --force --sign "$COVERZIP_SIGN_IDENTITY" .local-backup/install-ai-plugin
 .local-backup/install-ai-plugin .local-backup/20261019/ai-plugin/AIColorizer.bundle
 ```
 
@@ -126,6 +150,7 @@ ONNX Runtime 1.31.0（公式macOS arm64配布）をバンドル内に配置す�
 
 ```sh
 export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+export COVERZIP_SIGN_IDENTITY='<本体と同じ署名証明書のSHA-1>'
 python3 plugins/AIColorizer/fetch_manga_models.py .local-backup/20261019/manga-models
 # 公式配布から取得・展開（このMacでは取得済み）
 curl -fL https://github.com/microsoft/onnxruntime/releases/download/v1.31.0/onnxruntime-osx-arm64-1.31.0.tgz \

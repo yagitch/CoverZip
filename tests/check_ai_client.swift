@@ -1,6 +1,7 @@
 import AppKit
 
 enum CZAppGroup { static let identifier = "6KCX8JYZB7.com.yagitch.CoverZip" }
+enum CZAIPlugin { static let relativePath = "Library/Application Support/CoverZip/PlugIns/AIColorizer.bundle" }
 final class CZSettings {
     static let shared = CZSettings()
     var autoColorizeColorImages = false
@@ -18,7 +19,9 @@ final class CZSettings {
         context.fill(CGRect(x: 0, y: 0, width: 8192, height: 4096))
         let source = context.makeImage()!, slot = NSObject(), client = AIColorizerClient()
         var complete = false
-        client.render(source, slot: slot) { _ in fatalError("古いページの結果が適用されました") }
+        client.render(source, slot: slot, status: { _ in fatalError("古いページの状態が通知されました") }) { _ in
+            fatalError("古いページの結果が適用されました")
+        }
         client.cancelAll()
         let start = Date()
         CZSettings.shared.mangaColorStrength = 0
@@ -43,6 +46,15 @@ final class CZSettings {
         }
         while !complete && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.01)) }
         precondition(complete)
-        print("高解像度画像の縮小・非同期合成・取り消しを確認")
+        complete = false
+        context.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 8192, height: 4096))
+        client.render(context.makeImage()!, slot: slot, status: { text in
+            if text.contains("除外") { complete = true }
+        }) { _ in fatalError("カラー画像が除外されませんでした") }
+        let colorDeadline = Date().addingTimeInterval(10)
+        while !complete && Date() < colorDeadline { RunLoop.current.run(until: Date().addingTimeInterval(0.01)) }
+        precondition(complete, "除外の状態が返りませんでした")
+        print("高解像度画像の縮小・非同期合成・取り消し・カラー除外の状態通知を確認")
     }
 }

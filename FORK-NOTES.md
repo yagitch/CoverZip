@@ -1,5 +1,14 @@
 # このフォークの変更
 
+ビルド50では、AI着色のオン／オフの説明、実ビューアの処理状態・失敗理由、
+プレビュー拡張内で合成画像を処理する動作確認ボタンを追加しました。
+peterの保存設定はオフでしたが、オンにすると既存モデルで着色できました。
+macOS 27.2.1 / Xcode 27.2で署名付きビルドを配備し、高速・漫画用の両方の着色表示、
+Finderでの無着色、カラー画像の除外、プラグイン不在時の案内を実機確認しました。
+ビルドと導入も現構成に合わせ、入力ハッシュ・署名チームの照合と旧版を残す置換を追加しています。
+詳細は [AIプラグインの手順](plugins/AIColorizer/README.md)、記録は
+[agent-ops #1134](https://forgejo.home.yagitch.com/robo/agent-ops/issues/1134) を参照してください。
+
 ビルド49では、日本語・記号を含むURLを本体で開く際の強制終了を修正しました。
 URLのパーセント表記をNSLogの書式文字列として解釈していたことが原因です。
 ファイルオープン、ルーティング判定、設定保存エラー、ZIPエラーの動的ログを
@@ -168,7 +177,7 @@ KeyHelper・共有設定定義を揃えて変更しています。旧グルー�
 
 利用者のApple Development証明書を使い、macOSのチームID接頭辞方式で署名します。
 元のアプリとKarabiner設定は `.local-backup/20261019/` に退避済みです。
-導入先は `/Applications/CoverZip.app`、改修版のビルド番号は49です。
+導入先は `/Applications/CoverZip.app`、改修版のビルド番号は50です。
 公式版で改修が上書きされないよう、設定画面の自動アップデート確認をオフにします。
 署名者が変わる初回導入時は、KeyHelperのアクセシビリティ権限とログイン項目を
 登録し直します。Karabinerの設定変更は不要です。
@@ -178,7 +187,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -project CoverZip.xcodeproj -scheme CoverZip -configuration Release \
   -derivedDataPath .build-local build DEVELOPMENT_TEAM=6KCX8JYZB7 \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Development' \
-  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=49
+  PROVISIONING_PROFILE_SPECIFIER= REGISTER_APP_GROUPS=NO CURRENT_PROJECT_VERSION=50
 ```
 
 境界条件のテスト: `python3 tests/check_page_navigation.py`

@@ -4,6 +4,13 @@
 //
 
 import Foundation
+
+/// AIプラグインの配置と、画像を含めない動作確認の通知。
+public enum CZAIPlugin {
+    public static let relativePath = "Library/Application Support/CoverZip/PlugIns/AIColorizer.bundle"
+    public static let diagnosticRequest = Notification.Name("com.yagitch.CoverZip.aiDiagnosticRequest")
+    public static let diagnosticResult = Notification.Name("com.yagitch.CoverZip.aiDiagnosticResult")
+}
 #if canImport(AppKit)
 import AppKit
 #endif

@@ -15,6 +15,28 @@ final class AppSettingsWriter: ObservableObject {
 
     private let core = CZSettings.shared
     private var isLoadingSettings = false
+    @Published var aiDiagnosticText = "本体のビューアで画像を開き、動作確認を実行できます。"
+    private var aiDiagnosticObserver: NSObjectProtocol?
+    private var aiDiagnosticRequestID: String?
+    private var aiDiagnosticReplies: [String: String] = [:]
+
+    func checkAIColorizer() {
+        let request = UUID().uuidString
+        aiDiagnosticRequestID = request
+        aiDiagnosticReplies.removeAll()
+        aiDiagnosticText = "本体のビューアへ確認中…"
+        DistributedNotificationCenter.default().postNotificationName(
+            CZAIPlugin.diagnosticRequest, object: request, userInfo: nil, deliverImmediately: true)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 45) { [weak self] in
+            guard let self, self.aiDiagnosticRequestID == request else { return }
+            self.aiDiagnosticRequestID = nil
+            if self.aiDiagnosticReplies.isEmpty {
+                self.aiDiagnosticText = "応答がありません。本体のビューアで画像を開いて再実行してください。"
+            } else if self.aiDiagnosticReplies.values.contains(where: { $0.contains("処理中") }) {
+                self.aiDiagnosticText += "\n処理が完了していません。ビューアの状態と実行ログを確認してください。"
+            }
+        }
+    }
     @Published var autoColorizeEnabled = false {
         didSet {
             core.autoColorizeEnabled = autoColorizeEnabled
@@ -135,6 +157,17 @@ final class AppSettingsWriter: ObservableObject {
     private init() {
         // コア設定から現在値を読み込む
         loadSettings()
+        aiDiagnosticObserver = DistributedNotificationCenter.default().addObserver(
+            forName: CZAIPlugin.diagnosticResult, object: nil, queue: .main
+        ) { [weak self] notification in
+            guard let self, let request = self.aiDiagnosticRequestID,
+                  let payload = notification.object as? String, let data = payload.data(using: .utf8),
+                  let result = (try? JSONSerialization.jsonObject(with: data)) as? [String: String],
+                  result["request"] == request,
+                  let session = result["session"], let status = result["status"] else { return }
+            self.aiDiagnosticReplies[session] = status
+            self.aiDiagnosticText = self.aiDiagnosticReplies.values.sorted().joined(separator: "\n")
+        }
     }
 
     private func loadSettings() {
